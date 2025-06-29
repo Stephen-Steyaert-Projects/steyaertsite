@@ -2,7 +2,6 @@ from .base import *
 from steyaertsite.settings import get_secret
 
 SECRET_KEY = get_secret("SECRET_KEY")
-ENCRYPTION_KEY = get_secret("ENCRYPTION_KEY")
 
 DEBUG = False
 raw_hosts = get_secret("ALLOWED_HOSTS", "")
@@ -26,6 +25,6 @@ SECURE_SSL_REDIRECT = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
-# CORS_ALLOW_ALL_ORIGINS = bool(get_secret("CORS_ALLOW_ALL_ORIGINS", 0))
-# CORS_ALLOW_NULL_ORIGIN = bool(get_secret("CORS_ALLOW_NULL_ORIGIN", 1))
-# CORS_ALLOWED_ORIGINS = [get_secret("CORS_ALLOWED_ORIGINS", "")]
+CORS_ALLOW_ALL_ORIGINS = bool(get_secret("CORS_ALLOW_ALL_ORIGINS", 0))
+CORS_ALLOW_NULL_ORIGIN = bool(get_secret("CORS_ALLOW_NULL_ORIGIN", 0))
+CORS_ALLOWED_ORIGINS = [get_secret("CORS_ALLOWED_ORIGINS", "")]

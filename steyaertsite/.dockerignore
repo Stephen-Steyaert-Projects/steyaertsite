@@ -8,7 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
-.env
+.env*
 db.sqlite3
 
 .gitignore
@@ -16,3 +16,5 @@ db.sqlite3
 pyproject.toml
 uv.lock
 readme.md
+docker-compose.yaml
+traefik/
