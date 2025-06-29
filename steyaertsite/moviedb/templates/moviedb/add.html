@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Add Movie{% endblock %}
+
+{% block addClass %}active{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  <!-- Title Field -->
+  <div class="mb-3">
+    {{ form.title.label_tag }}
+    {{ form.title }}
+    {% if form.title.errors %}
+      <div class="text-danger small">
+        {{ form.title.errors.as_text|slice:":80" }}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Rating Field -->
+  <div class="mb-3">
+    {{ form.rating.label_tag }}
+    {{ form.rating }}
+    {% if form.rating.errors %}
+      <div class="text-danger small">
+        {{ form.rating.errors.as_text|slice:":80" }}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Disk Field -->
+  <div class="mb-3">
+    {{ form.disk.label_tag }}
+    {{ form.disk }}
+    {% if form.disk.errors %}
+      <div class="text-danger small">
+        {{ form.disk.errors.as_text|slice:":80" }}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Submit Button -->
+  <button type="submit" class="btn btn-primary">Add Movie</button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}All Movies{% endblock %}
+
+{% block allClass %}active{% endblock %}
+
+{% block content %}
+
+<div class="accordion" id="accordionPanelsStayOpenExample">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
+        G Movies
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        {% if not g_movies %}
+            No G Movies
+        {% else %}
+            <ul>
+            {% for movie in g_movies %}
+                <li>{{ movie.title }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
+        PG Movies
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        {% if not pg_movies %}
+            No PG Movies
+        {% else %}
+            <ul>
+            {% for movie in pg_movies %}
+                <li>{{ movie.title }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false" aria-controls="panelsStayOpen-collapseFour">
+        PG-13 Movies
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        {% if not pg13_movies %}
+            No PG-13 Movies
+        {% else %}
+            <ul>
+            {% for movie in pg13_movies %}
+                <li>{{ movie.title }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false" aria-controls="panelsStayOpen-collapseFive">
+        R Movies
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        {% if not r_movies %}
+            No R Movies
+        {% else %}
+            <ul>
+            {% for movie in r_movies %}
+                <li>{{ movie.title }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSix" aria-expanded="false" aria-controls="panelsStayOpen-collapseSix">
+        NR Movies
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseSix" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        {% if not nr_movies %}
+            No NR Movies
+        {% else %}
+            <ul>
+            {% for movie in nr_movies %}
+                <li>{{ movie.title }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSeven" aria-expanded="false" aria-controls="panelsStayOpen-collapseSeven">
+        TV Shows
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        {% if not tv_movies %}
+            No TV Shows
+        {% else %}
+            <ul>
+            {% for movie in tv_movies %}
+                <li>{{ movie.title }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

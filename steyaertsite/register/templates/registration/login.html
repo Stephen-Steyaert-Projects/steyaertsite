@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load form_filters %}
+
+{% block title %}Login{% endblock %}
+
+{% block loginClass %}active{% endblock %}
+
+{% block content %}
+<div class="container py-5 d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
+    <h2 class="text-center mb-4">Login</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-floating mb-3">
+          {{ field|add_class:"form-control bg-dark text-light" }} 
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {% if field.errors %}
+            <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-light w-100">Log In</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

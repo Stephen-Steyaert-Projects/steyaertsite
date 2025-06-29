@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Random Movie Generator{% endblock %}
+
+{% block randomClass %}active{% endblock %}
+
+{% block content %}
+
+<form method="get" action="{% url 'random_results' %}">
+  {% csrf_token %}
+
+  <!-- Number input -->
+  <div class="mb-3">
+    {{ form.movies.label_tag }}
+    {{ form.movies }}
+    {% if form.movies.errors %}
+      <div class="text-danger small">{{ form.movies.errors }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Rating checkboxes -->
+  <div class="mb-3">
+    {{ form.ratings.label_tag }}
+    {{ form.ratings }}
+    {% if form.ratings.errors %}
+      <div class="text-danger small">{{ form.ratings.errors }}</div>
+    {% endif %}
+  </div>
+
+  <button type="submit" class="btn btn-primary">Generate</button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="card text-bg-secondary rounded-4 border-0 shadow-sm" style="max-width: 500px; width: 100%;">
+    <div class="card-body text-center p-4">
+      <h3 class="card-title mb-3">Welcome</h3>
+      <p class="card-text mb-4">
+        To view the <span class="fw-bold text-primary" style="text-shadow: 0 0 5px rgba(0,0,0,0.6);">Steyaert Movie Database</span>, please log in.
+      </p>
+      <a href="{% url 'login' %}" class="btn btn-primary w-100">Log In</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
