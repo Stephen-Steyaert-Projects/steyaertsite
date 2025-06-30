@@ -1,4 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Search Results For {{t}}{% endblock %}
+{% block title %}Search Results For "{{t}}"{% endblock %}
 
+{% block content %}
+{% if not titles %}
+    <p class="h3 text-center text-warning mt-4">No results found for "{{t}}"</p>
+{% else %}
+    <ul class="list-group">
+        {% for item in titles %}
+            <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
+            {{ item.title }}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endblock %}

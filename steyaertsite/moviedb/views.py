@@ -114,8 +114,8 @@ def search_results(request, title: str):
             ctx = {"titles": results, "t": _title}
         else:
             ctx = {
-                "titles": [f'There are no titles that match the query "{_title}"'],
-                "t": title,
+                "titles": [],
+                "t": _title,
             }
     return render(request, "moviedb/search_results.html", ctx)
 
@@ -145,5 +145,5 @@ def random_results(request):
 
             return render(request, "moviedb/random_results.html", {"generated": generated})
 
-    return redirect("random_movie_generator")  # or your 'random' route name
+    return redirect("random_movie_generator")
 
