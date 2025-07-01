@@ -70,10 +70,13 @@ class RandomMovieForm(forms.Form):
         max_value=20,
         initial=1,
         label="How many movies?",
-        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "1–20"})
+        widget=forms.NumberInput(attrs={"placeholder": "1-20"})
     )
     ratings = forms.MultipleChoiceField(
         choices=RATING_CHOICES,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
         label="Choose ratings",
     )
+
+class CSVUploadForm(forms.Form):
+    file = forms.FileField(label="Upload CSV File")

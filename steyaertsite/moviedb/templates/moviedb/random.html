@@ -1,33 +1,45 @@
 {% extends "base.html" %}
 
+{% load form_filters %}
+
 {% block title %}Random Movie Generator{% endblock %}
 
 {% block randomClass %}active{% endblock %}
 
 {% block content %}
 
-<form method="get" action="{% url 'random_results' %}">
-  {% csrf_token %}
-
-  <!-- Number input -->
-  <div class="mb-3">
-    {{ form.movies.label_tag }}
-    {{ form.movies }}
-    {% if form.movies.errors %}
-      <div class="text-danger small">{{ form.movies.errors }}</div>
-    {% endif %}
+<div class="container py-1 d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+  <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
+    <h2 class="text-center mb-4">Random Movie Generator</h2>
+    <form method="post" novalidate>
+        {% csrf_token %}
+            {% for field in form %}
+                {% if field|is_checkboxselectmultiple %}
+                <div class="mb-3">
+                    <label class="form-label">{{ field.label }}</label>
+                    {% for checkbox in field %}
+                    <div class="form-check">
+                        {{ checkbox.tag }}  {# Already includes id + name + value #}
+                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                    </div>
+                    {% endfor %}
+                    {% if field.errors %}
+                    <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="form-floating mb-3">
+                    {{ field|add_class:"form-control bg-dark text-light" }}
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {% if field.errors %}
+                    <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+            <button type="submit" class="btn btn-light w-100">Generate Movies</button>
+        </form>
   </div>
-
-  <!-- Rating checkboxes -->
-  <div class="mb-3">
-    {{ form.ratings.label_tag }}
-    {{ form.ratings }}
-    {% if form.ratings.errors %}
-      <div class="text-danger small">{{ form.ratings.errors }}</div>
-    {% endif %}
-  </div>
-
-  <button type="submit" class="btn btn-primary">Generate</button>
-</form>
+</div>
 
 {% endblock %}

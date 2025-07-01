@@ -16,6 +16,9 @@ DISK_CHOICES = [
 ]
 
 class Movie(models.Model):
+    class Meta:
+        unique_together = ('title', 'rating', 'disk')
+
     title = models.CharField(max_length=200)
     rating = models.CharField(max_length=6, choices=RATING_CHOICES)
     disk = models.CharField(max_length=8, choices=DISK_CHOICES)

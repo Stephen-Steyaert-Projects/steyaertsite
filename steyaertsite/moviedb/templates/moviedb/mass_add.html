@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Mass Add Movies{% endblock %}
+
+{% block addMassClass %}active{% endblock %}
+
+{% block content %}
+
+<div class="container py-1 d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+  <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
+    <h2 class="text-center mb-1">Mass Add Movies</h2>
+    <h5 class="text-center mb-4 text-warning">
+      Upload a CSV with title, rating, and disk columns. Example below: <br/><code>The Matrix,R,blu-ray</code>
+    </h5>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="form-floating mb-3">
+        <input type="file" name="csv_file" accept=".csv" required class="form-control bg-dark text-light" id="csvFileInput">
+        <label for="csvFileInput">CSV File</label>
+      </div>
+      <button type="submit" class="btn btn-light w-100">Upload</button>
+    </form>
+
+    {% if messages %}
+      <div class="mt-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} py-2 px-3 mb-2 small" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+
+{% endblock %}

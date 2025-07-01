@@ -1,8 +1,11 @@
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
 from .forms import AddMovieForm, RandomMovieForm
 from random import sample, shuffle
 from .models import Movie
+from django.contrib import messages
+import csv
+import io
 
 
 def index(request):
@@ -147,3 +150,56 @@ def random_results(request):
 
     return redirect("random_movie_generator")
 
+def is_admin(user):
+    return user.is_staff
+
+@login_required(login_url="/auth/login")
+@user_passes_test(is_admin)
+def add_mass_movies(request):
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+
+        if not csv_file.name.endswith('.csv'):
+            messages.error(request, 'Please upload a valid .csv file.')
+            return redirect('add_mass_movies')
+
+        try:
+            decoded_file = csv_file.read().decode('utf-8')
+            io_string = io.StringIO(decoded_file)
+            reader = csv.reader(io_string)
+            next(reader)  # Skip header row
+
+            valid_ratings = {choice[0].upper() for choice in Movie._meta.get_field('rating').choices}
+            valid_disks = {choice[0].lower() for choice in Movie._meta.get_field('disk').choices}
+
+            count = 0
+            for row in reader:
+                if len(row) != 3:
+                    messages.warning(request, f"Skipping invalid row: {row}")
+                    continue
+
+                title, rating, disk = [item.strip() for item in row]
+                rating = rating.upper()
+                disk = disk.lower()
+                if Movie.objects.filter(title=title, rating=rating, disk=disk).exists():
+                    messages.info(request, f"Skipping duplicate movie: {title} ({rating}, {disk})")
+                    continue
+
+                if rating not in valid_ratings:
+                    messages.warning(request, f"Invalid rating '{rating}' in row: {row}")
+                    continue
+
+                if disk not in valid_disks:
+                    messages.warning(request, f"Invalid disk type '{disk}' in row: {row}")
+                    continue
+
+                Movie.objects.create(title=title, rating=rating, disk=disk)
+                count += 1
+
+            messages.success(request, f"Successfully added {count} movies.")
+        except Exception as e:
+            messages.error(request, f"Error processing file: {e}")
+
+        return redirect('add_mass_movies')
+
+    return render(request, "moviedb/mass_add.html")

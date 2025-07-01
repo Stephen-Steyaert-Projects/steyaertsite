@@ -1,48 +1,30 @@
 {% extends "base.html" %}
 
+{% load form_filters %}
+
 {% block title %}Add Movie{% endblock %}
 
 {% block addClass %}active{% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
-  {% csrf_token %}
-
-  <!-- Title Field -->
-  <div class="mb-3">
-    {{ form.title.label_tag }}
-    {{ form.title }}
-    {% if form.title.errors %}
-      <div class="text-danger small">
-        {{ form.title.errors.as_text|slice:":80" }}
-      </div>
-    {% endif %}
+<div class="container py-1 d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+  <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
+    <h2 class="text-center mb-1">Add Movie</h2>
+    <h5 class="text-center mb-4 text-warning">Please search the Database and make sure that the movie isn't already owned.</h5>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-floating mb-3">
+          {{ field|add_class:"form-control bg-dark text-light" }} 
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {% if field.errors %}
+            <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-light w-100">Add Movie</button>
+    </form>
   </div>
-
-  <!-- Rating Field -->
-  <div class="mb-3">
-    {{ form.rating.label_tag }}
-    {{ form.rating }}
-    {% if form.rating.errors %}
-      <div class="text-danger small">
-        {{ form.rating.errors.as_text|slice:":80" }}
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Disk Field -->
-  <div class="mb-3">
-    {{ form.disk.label_tag }}
-    {{ form.disk }}
-    {% if form.disk.errors %}
-      <div class="text-danger small">
-        {{ form.disk.errors.as_text|slice:":80" }}
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Submit Button -->
-  <button type="submit" class="btn btn-primary">Add Movie</button>
-</form>
+</div>
 
 {% endblock %}

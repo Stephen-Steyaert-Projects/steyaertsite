@@ -15,4 +15,5 @@ urlpatterns = [
     path("movies/random/", views.random, name="random_movie_generator"),
     path("movies/random/results/", views.random_results, name="random_results"),
     path("search/<str:title>/", views.search_results, name="search"),
+    path("movies/add/mass/", views.add_mass_movies, name="add_mass"),
 ]
