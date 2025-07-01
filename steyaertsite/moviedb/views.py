@@ -200,6 +200,6 @@ def add_mass_movies(request):
         except Exception as e:
             messages.error(request, f"Error processing file: {e}")
 
-        return redirect('add_mass_movies')
+        return redirect('add_mass')
 
     return render(request, "moviedb/mass_add.html")
