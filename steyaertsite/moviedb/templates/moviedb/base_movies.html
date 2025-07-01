@@ -16,42 +16,47 @@
             <a class="navbar-brand" href="{% url 'home' %}">Steyaert Movie Database</a>
 
             <div class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
+            <ul class="nav me-auto mb-2 mb-lg-0 nav-pills">
                 <li class="nav-item">
-                <a class="nav-link text-light {% block homeClass %}{%endblock%}" href="{% url 'home' %}">Home</a>
+                <a class="nav-link {% block homeClass %}{%endblock%}" href="{% url 'home' %}">Home</a>
                 </li>
                 <li class="nav-item">
-                <a class="nav-link text-light {% block allClass %}{%endblock%}" href="{% url 'all' %}">All Movies</a>
+                <a class="nav-link {% block allClass %}{%endblock%}" href="{% url 'all' %}">All Movies</a>
                 </li>
 
                 <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text-light" href="#" id="ratingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="nav-link dropdown-toggle" href="#" id="ratingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Movies By Rating
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="ratingDropdown">
-                    <li><a class="dropdown-item text-light" href="{% url 'g_movies' %}">G</a></li>
-                    <li><a class="dropdown-item text-light" href="{% url 'pg_movies' %}">PG</a></li>
-                    <li><a class="dropdown-item text-light" href="{% url 'pg-13_movies' %}">PG-13</a></li>
-                    <li><a class="dropdown-item text-light" href="{% url 'r_movies' %}">R</a></li>
-                    <li><a class="dropdown-item text-light" href="{% url 'nr_movies' %}">NR</a></li>
-                    <li><a class="dropdown-item text-light" href="{% url 'tv_shows' %}">TV</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'g_movies' %}">G</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'pg_movies' %}">PG</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'pg-13_movies' %}">PG-13</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'r_movies' %}">R</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'nr_movies' %}">NR</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'tv_shows' %}">TV</a></li>
                 </ul>
                 </li>
 
                 <li class="nav-item">
-                <a class="nav-link text-light {% block addClass %}{%endblock%}" href="{% url 'add' %}">Add a Movie</a>
+                <a class="nav-link {% block addClass %}{%endblock%}" href="{% url 'add' %}">Add a Movie</a>
                 </li>
                 <li class="nav-item">
-                <a class="nav-link text-light {% block randomClass %}{%endblock%}" href="{% url 'random_movie_generator' %}">Random Movie Generator</a>
+                <a class="nav-link {% block randomClass %}{%endblock%}" href="{% url 'random_movie_generator' %}">Random Movie Generator</a>
                 </li>
                 <li class="nav-item">
                 {% if user.is_authenticated %}
                     <form action="{% url 'logout' %}" method="post" style="display: inline;">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-link text-light" style="text-decoration: none;">Logout</button>
+                        <button type="submit" class="btn btn-link" style="text-decoration: none;">Logout</button>
                     </form>            
                     {% else %}
-                    <a class="nav-link text-light {% block loginClass %}{%endblock%}" href="{% url 'login' %}">Login</a>
+                    <a class="nav-link {% block loginClass %}{%endblock%}" href="{% url 'login' %}">Login</a>
                 {% endif %}
             </ul>
 
