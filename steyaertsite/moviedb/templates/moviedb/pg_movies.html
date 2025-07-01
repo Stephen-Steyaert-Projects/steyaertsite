@@ -11,7 +11,7 @@
     <ul class="list-group">
         {% for movie in pg_movies %}
             <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-            {{ forloop.counter }}. {{ movie.title }}
+            {{ movie.title }}
             </li>
         {% endfor %}
     </ul>

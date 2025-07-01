@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Random Move Generator - Results{% endblock %}
+{% block title %}Random Movie Generator - Results{% endblock %}
 
 {% block randomClass %}active{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Movies Generated:</h1>
+
+<ul class="list-group">
+    {% for movie in generated %}
+        <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
+            {{ forloop.counter }}. {{ movie.title }} — Rated {{ movie.rating }}
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

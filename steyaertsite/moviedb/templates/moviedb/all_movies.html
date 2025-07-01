@@ -21,7 +21,7 @@
             <ul class="list-group">
             {% for movie in g_movies %}
                 <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-                  {{ forloop.counter }}. {{ movie.title }}
+                  {{ movie.title }}
                 </li>
             {% endfor %}
             </ul>
@@ -43,7 +43,7 @@
             <ul class="list-group">
             {% for movie in pg_movies %}
                 <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-                  {{ forloop.counter }}. {{ movie.title }}
+                  {{ movie.title }}
                 </li>
             {% endfor %}
             </ul>
@@ -65,7 +65,7 @@
             <ul class="list-group">
             {% for movie in pg13_movies %}
                 <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-                  {{ forloop.counter }}. {{ movie.title }}
+                  {{ movie.title }}
                 </li>
             {% endfor %}
             </ul>
@@ -87,7 +87,7 @@
             <ul class="list-group">
             {% for movie in r_movies %}
                 <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-                  {{ forloop.counter }}. {{ movie.title }}
+                  {{ movie.title }}
                 </li>
             {% endfor %}
             </ul>
@@ -109,7 +109,7 @@
             <ul class="list-group">
             {% for movie in nr_movies %}
                 <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-                  {{ forloop.counter }}. {{ movie.title }}
+                  {{ movie.title }}
                 </li>
             {% endfor %}
             </ul>
@@ -131,7 +131,7 @@
             <ul class="list-group">
             {% for movie in tv_movies %}
                 <li class="list-group-item {% if forloop.counter0|divisibleby:2 %}list-group-item-light{% endif %}">
-                  {{ forloop.counter }}. {{ movie.title }}
+                  {{ movie.title }}
                 </li>
             {% endfor %}
             </ul>

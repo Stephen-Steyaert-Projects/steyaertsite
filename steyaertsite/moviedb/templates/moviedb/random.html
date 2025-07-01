@@ -11,7 +11,7 @@
 <div class="container py-1 d-flex justify-content-center align-items-center" style="min-height: 70vh;">
   <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
     <h2 class="text-center mb-4">Random Movie Generator</h2>
-    <form method="post" novalidate>
+    <form method="post" action="{% url 'random_results' %}" novalidate>
         {% csrf_token %}
             {% for field in form %}
                 {% if field|is_checkboxselectmultiple %}

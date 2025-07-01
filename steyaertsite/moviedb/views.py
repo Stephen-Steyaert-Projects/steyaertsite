@@ -199,8 +199,8 @@ def random(request):
 
 @login_required(login_url="/auth/login")
 def random_results(request):
-    if request.method == "GET":
-        form = RandomMovieForm(request.GET)
+    if request.method == "POST":
+        form = RandomMovieForm(request.POST)
         if form.is_valid():
             num_movies = form.cleaned_data["movies"]
             selected_ratings = form.cleaned_data["ratings"]
@@ -212,7 +212,7 @@ def random_results(request):
                 .distinct()
             )
 
-            movie_list = [[m["title"], m["rating"]] for m in movies]
+            movie_list = [{"title": m["title"], "rating": m["rating"]} for m in movies]
             shuffle(movie_list)
 
             if len(movie_list) < num_movies:
@@ -220,11 +220,22 @@ def random_results(request):
 
             generated = sample(movie_list, num_movies)
 
-            return render(
-                request, "moviedb/random_results.html", {"generated": generated}
-            )
+            # Store in session
+            request.session["random_results"] = generated
 
+            # Redirect so that reloads won't resubmit the form
+            return redirect("random_results")
+
+    # If GET: show results only if they exist in session
+    generated = request.session.pop("random_results", None)
+
+    if generated:
+        return render(request, "moviedb/random_results.html", {"generated": generated})
+
+    # No results → back to generator
     return redirect("random_movie_generator")
+
+
 
 
 def is_admin(user):
