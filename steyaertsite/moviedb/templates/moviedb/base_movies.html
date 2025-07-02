@@ -49,6 +49,11 @@
                 <li class="nav-item">
                 <a class="nav-link {% block randomClass %}{%endblock%}" href="{% url 'random_movie_generator' %}">Random Movie Generator</a>
                 </li>
+                {% if user.is_staff %}
+                    <li class="nav-item">
+                        <a class="nav-link {% block addMassClass %}{%endblock%}" href="{% url 'add_mass' %}">Mass Add Movies</a>
+                    </li>
+                {% endif %}
                 <li class="nav-item">
                 {% if user.is_authenticated %}
                     <form action="{% url 'logout' %}" method="post" style="display: inline;">

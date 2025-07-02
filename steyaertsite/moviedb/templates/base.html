@@ -46,7 +46,7 @@
                 </li>
                 {% if user.is_staff %}
                     <li class="nav-item">
-                        <a class="nav-link {% block addMassClass %}{%endblock%}" href="{% url 'add_mass' %}">Add Mass Movies</a>
+                        <a class="nav-link {% block addMassClass %}{%endblock%}" href="{% url 'add_mass' %}">Mass Add Movies</a>
                     </li>
                 {% endif %}
                 {% if user.is_authenticated %}

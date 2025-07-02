@@ -10,7 +10,9 @@
   <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
     <h2 class="text-center mb-1">Mass Add Movies</h2>
     <h5 class="text-center mb-4 text-warning">
-      Upload a CSV with title, rating, and disk columns. Example below: <br/><code>The Matrix,R,blu-ray</code>
+      Upload a CSV with first row being the following: <br/>
+      <code>title,rating,disk</code><br/>
+       Then follow example below: <br/><code>The Matrix,R,blu-ray</code>
     </h5>
 
     <form method="post" enctype="multipart/form-data" novalidate>
