@@ -1,0 +1,13 @@
+http:
+  middlewares:
+    secureHeaders:
+      headers:
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy:
+          camera: '()'
+          microphone: '()'
+          geolocation: '()'

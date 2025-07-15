@@ -10,5 +10,5 @@ wheels/
 .venv
 .env*
 db.sqlite3
-traefik
+traefik/acme.json
 entrypoint.prod.sh

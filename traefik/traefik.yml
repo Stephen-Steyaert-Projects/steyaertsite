@@ -1,0 +1,23 @@
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: savagery2005@gmail.com
+      storage: /acme.json
+      httpChallenge:
+        entryPoint: web
+
+api:
+  dashboard: true
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    filename: /etc/traefik/traefik_dynamic.yml
+    watch: true
