@@ -93,12 +93,9 @@ STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
-
-STATIC_FILES_DIRS = (
-    BASE_DIR / "form" / "static",
-    BASE_DIR / "register" / "static",
-)
+STATICFILES_DIRS = [
+    BASE_DIR / "moviedb" / "static",
+]
 
 LOGIN_URL = "/auth/login/"
 LOGOUT_REDIRECT_URL = "/auth/login/"

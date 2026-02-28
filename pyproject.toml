@@ -9,9 +9,6 @@ dependencies = [
 ]
 
 [dependency-groups]
-app = [
-    "django-cors-headers>=4.7.0",
-]
 dev = [
     "python-dotenv>=1.1.0",
 ]

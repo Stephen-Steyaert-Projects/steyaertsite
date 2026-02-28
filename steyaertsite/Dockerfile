@@ -1,5 +1,5 @@
 # ---- Stage 1: Build dependencies ----
-FROM python:3.13.5-alpine3.22 AS builder
+FROM python:3.12-alpine3.22 AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -26,7 +26,7 @@ RUN pip install --upgrade --no-cache-dir --root-user-action=ignore pip setuptool
     pip install --no-cache-dir --root-user-action=ignore --prefer-binary -r requirements.txt
 
 # ---- Stage 2: Runtime image ----
-FROM python:3.13.5-alpine3.22
+FROM python:3.12-alpine3.22
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -37,7 +37,8 @@ RUN apk add --no-cache \
     libffi \
     icu-libs \
     icu-data-full \
-    openssl
+    openssl \
+    netcat-openbsd
 
 # Add non-root user
 RUN adduser -D appuser
@@ -45,7 +46,7 @@ RUN adduser -D appuser
 WORKDIR /app
 
 # Copy installed Python packages and binaries from build stage
-COPY --from=builder /usr/local/lib/python3.13/site-packages/ /usr/local/lib/python3.13/site-packages/
+COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 
 # Copy your app code (chown to non-root)
