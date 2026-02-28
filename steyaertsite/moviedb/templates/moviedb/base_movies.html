@@ -4,18 +4,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block description %}Browse the Steyaert family movie collection. Track movies by rating, format, and more in our personal database.{% endblock %}">
+    <meta name="keywords" content="steyaert movies, family movie collection, movie database, film library, blu-ray, dvd, 4k">
+    <meta name="author" content="Steyaert Family">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}Steyaert Movie Database{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Browse the Steyaert family movie collection.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'smdb.png' %}{% endblock %}">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}Steyaert Movie Database{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Browse the Steyaert family movie collection.{% endblock %}">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
     <link rel="icon" type="image/png" href="{% static 'smdb.png' %}">
     {% block metaLinks %}{% endblock %}
     <title>{% block title %}Title{% endblock %}|Steyaert Movie Database</title>
+    <style>
+        /* Make nav-pills stack nicely on mobile */
+        @media (max-width: 1399.98px) {
+            .navbar-collapse .nav-pills {
+                flex-direction: column !important;
+                width: 100%;
+            }
+            .navbar-collapse .nav-pills .nav-item {
+                width: 100%;
+            }
+            .navbar-collapse .nav-pills .nav-link {
+                border-radius: 0.375rem;
+                margin: 0.25rem 0;
+                width: 100%;
+                text-align: left;
+            }
+            .navbar-collapse .nav-pills .dropdown-menu {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+    <nav class="navbar navbar-expand-xxl bg-dark navbar-dark mb-5">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'home' %}">Steyaert Movie Database</a>
 
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
             <ul class="nav me-auto mb-2 mb-lg-0 nav-pills">
                 <li class="nav-item">
                 <a class="nav-link {% block homeClass %}{%endblock%}" href="{% url 'home' %}">Home</a>
@@ -54,18 +94,21 @@
                         <a class="nav-link {% block addMassClass %}{%endblock%}" href="{% url 'add_mass' %}">Mass Add Movies</a>
                     </li>
                 {% endif %}
-                <li class="nav-item">
                 {% if user.is_authenticated %}
-                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-link" style="text-decoration: none;">Logout</button>
-                    </form>            
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link btn btn-link text-start w-100 border-0 p-0 px-3 py-2">Logout</button>
+                        </form>
+                    </li>
                     {% else %}
-                    <a class="nav-link {% block loginClass %}{%endblock%}" href="{% url 'login' %}">Login</a>
+                    <li class="nav-item">
+                        <a class="nav-link {% block loginClass %}{%endblock%}" href="{% url 'login' %}">Login</a>
+                    </li>
                 {% endif %}
             </ul>
 
-            <form class="d-flex" role="search" onsubmit="return redirectToSearch(this)">
+            <form class="d-flex mt-3 mt-xl-0" role="search" onsubmit="return redirectToSearch(this)">
                 <input class="form-control me-2" type="search" id="searchTitle" placeholder="Search" aria-label="Search" />
                 <button class="btn btn-success" type="submit">Search</button>
             </form>
