@@ -54,6 +54,10 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 # Copy your app code (chown to non-root)
 COPY --chown=appuser:appuser . .
 
+# Create staticfiles and media directories with proper ownership
+RUN mkdir -p /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app/staticfiles /app/media
+
 # Ensure your entrypoint is executable
 RUN chmod +x /app/entrypoint.prod.sh
 
