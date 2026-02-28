@@ -12,7 +12,7 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="{% block og_title %}Steyaert Movie Database{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Browse the Steyaert family movie collection.{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% static 'smdb.png' %}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'og.png' %}{% endblock %}">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary">
@@ -24,6 +24,14 @@
     {% block metaLinks %}{% endblock %}
     <title>{% block title %}Title{% endblock %}|Steyaert Movie Database</title>
     <style>
+        /* Override Bootstrap's default teal links in dark mode */
+        a {
+            color: #6ea8fe !important; /* Lighter blue - more readable */
+        }
+        a:hover {
+            color: #9ec5fe !important; /* Even lighter on hover */
+        }
+
         /* Make nav-pills stack nicely on mobile */
         @media (max-width: 1399.98px) {
             .navbar-collapse .nav-pills {
