@@ -1,0 +1,23 @@
+# Example: Automatic deployment workflow
+# Rename to deploy.yml to enable automatic deployment
+
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["Build and Push to GHCR"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy to production
+        run: |
+          cd /srv/steyaertsite
+          make deploy
