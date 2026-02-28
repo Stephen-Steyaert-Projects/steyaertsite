@@ -1,49 +1,20 @@
-version: "3.8"
 
 services:
 
-  traefik:
-    image: traefik:v3.0
-    container_name: traefik
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=you@example.com"  # 👈 CHANGE THIS
-      - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
-      - "--log.level=INFO"
-      - "--api.dashboard=true"
-      - "--providers.file.filename=/etc/traefik/traefik_dynamic.yml"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/traefik_dynamic.yml:/etc/traefik/traefik_dynamic.yml:ro
-      - ./traefik/acme.json:/acme.json
-    networks:
-      - steyaertsite_net
-    restart: always
-
   website:
-    image: steyaertc23/steyaertsite:latest
+    image: ghcr.io/stephen-steyaert-projects/steyaertsite/steyaert-site:latest
     depends_on:
       - db
     env_file:
       - .env.prod
+    environment:
+      - VIRTUAL_HOST=movies.steyaert.xyz
+      - VIRTUAL_PORT=8000
     restart: always
     init: true
     networks:
+      - nginx-proxy
       - steyaertsite_net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.website.rule=Host(`movies.hisdomain.com`)"
-      - "traefik.http.routers.website.entrypoints=websecure"
-      - "traefik.http.routers.website.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.website.middlewares=secureHeaders@file"
 
   db:
     image: postgres:17
@@ -61,6 +32,8 @@ services:
       retries: 5
     env_file:
       - .env.prod
+    networks:
+      - steyaertsite_net
 
 networks:
   steyaertsite_net:
@@ -69,3 +42,5 @@ networks:
       config:
         - subnet: 172.55.1.0/24
           gateway: 172.55.1.1
+  nginx-proxy:
+    external: true

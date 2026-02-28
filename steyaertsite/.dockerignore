@@ -17,4 +17,3 @@ pyproject.toml
 uv.lock
 readme.md
 docker-compose.yaml
-traefik/

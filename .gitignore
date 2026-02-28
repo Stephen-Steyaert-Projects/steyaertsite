@@ -9,6 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .env*
+!.env.prod.example
 db.sqlite3
-traefik/acme.json
 entrypoint.prod.sh
