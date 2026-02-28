@@ -11,3 +11,4 @@ wheels/
 .env*
 !.env.prod.example
 db.sqlite3
+!entrypoint.prod.sh
