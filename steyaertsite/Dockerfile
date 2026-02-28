@@ -22,8 +22,10 @@ RUN apk add --no-cache \
 COPY requirements.txt .
 
 # Upgrade pip and install Python deps with prefer-binary
-RUN pip install --upgrade --no-cache-dir --root-user-action=ignore pip setuptools wheel && \
-    pip install --no-cache-dir --root-user-action=ignore --prefer-binary -r requirements.txt
+# Use cache mounts to speed up builds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade --root-user-action=ignore pip setuptools wheel && \
+    pip install --root-user-action=ignore --prefer-binary -r requirements.txt
 
 # ---- Stage 2: Runtime image ----
 FROM python:3.12-alpine3.22
