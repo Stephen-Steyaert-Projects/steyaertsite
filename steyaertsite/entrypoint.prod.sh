@@ -29,4 +29,4 @@ exec gunicorn steyaertsite.wsgi:application \
     --log-file - \
     --access-logfile - \
     --error-logfile - \
-    --log-level info
+    --log-level info 
