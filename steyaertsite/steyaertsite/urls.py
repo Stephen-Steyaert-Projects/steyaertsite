@@ -5,7 +5,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("register.urls")),
     path("", include("moviedb.urls")),
-    # path("api/", include("api.urls")),
 ]
 
 
