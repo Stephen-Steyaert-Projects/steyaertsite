@@ -28,14 +28,6 @@
     <script defer src="{% static 'js/moviedb.js' %}"></script>
     <script defer src="{% block scripts %}{% endblock %}"></script>
     <style>
-        /* Override Bootstrap's default teal links in dark mode */
-        a {
-            color: #6ea8fe !important; /* Lighter blue - more readable */
-        }
-        a:hover {
-            color: #9ec5fe !important; /* Even lighter on hover */
-        }
-
         /* Make nav-pills stack nicely on mobile */
         @media (max-width: 1399.98px) {
             .navbar-collapse .nav-pills {
