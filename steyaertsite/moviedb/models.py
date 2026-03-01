@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 RATING_CHOICES = [
     ('G', 'G'),
@@ -25,3 +26,17 @@ class Movie(models.Model):
 
     def __str__(self):
         return f"{self.title}"
+
+
+class RandomMovieResult(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    movies = models.JSONField()  # List of dicts: [{"title": "Movie Name", "rating": "PG"}, ...]
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at']),  # For efficient purge queries
+        ]
+
+    def __str__(self):
+        return f"Random result {self.id} ({len(self.movies)} movies)"

@@ -14,8 +14,8 @@ RATINGS = [
 DISKS = [
     ("", "Disk Type..."),
     ("4k", "4K Ultra HD"),
-    ("Blu-Ray", "Blu-Ray"),
-    ("DVD", "DVD"),
+    ("blu-ray", "Blu-Ray"),
+    ("dvd", "DVD"),
 ]
 
 
@@ -35,6 +35,10 @@ class AddMovieForm(forms.ModelForm):
             "rating": "What is the new Movie's Rating?",
             "disk": "What is the new Movie's Disk Type?",
         }
+
+    def validate_unique(self):
+        # Skip the default unique validation - we'll handle duplicates manually in the view
+        pass
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

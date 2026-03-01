@@ -1,9 +1,11 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import AddMovieForm, RandomMovieForm
 from random import sample, shuffle
-from .models import Movie
+from .models import Movie, RandomMovieResult
 from django.contrib import messages
+from django.utils import timezone
+from datetime import timedelta
 import csv
 import io
 from openpyxl import load_workbook
@@ -23,48 +25,42 @@ def home(request):
 @login_required(login_url="/auth/login")
 def all_movies(request):
     g_movies = (
-        Movie.objects.all()
-        .filter(rating="G")
+        Movie.objects.filter(rating="G")
         .order_by("title")
         .values("title")
         .distinct()
     )
 
     pg_movies = (
-        Movie.objects.all()
-        .filter(rating="PG")
+        Movie.objects.filter(rating="PG")
         .order_by("title")
         .values("title")
         .distinct()
     )
 
     pg13_movies = (
-        Movie.objects.all()
-        .filter(rating="PG-13")
+        Movie.objects.filter(rating="PG-13")
         .order_by("title")
         .values("title")
         .distinct()
     )
 
     r_movies = (
-        Movie.objects.all()
-        .filter(rating="R")
+        Movie.objects.filter(rating="R")
         .order_by("title")
         .values("title")
         .distinct()
     )
 
     nr_movies = (
-        Movie.objects.all()
-        .filter(rating="NR")
+        Movie.objects.filter(rating="NR")
         .order_by("title")
         .values("title")
         .distinct()
     )
 
     tv_movies = (
-        Movie.objects.all()
-        .filter(rating="TV")
+        Movie.objects.filter(rating="TV")
         .order_by("title")
         .values("title")
         .distinct()
@@ -73,7 +69,7 @@ def all_movies(request):
     ctx = {
         "g_movies": g_movies if g_movies else [],
         "pg_movies": pg_movies if pg_movies else [],
-        "pg13_movies": pg13_movies if pg_movies else [],
+        "pg13_movies": pg13_movies if pg13_movies else [],
         "r_movies": r_movies if r_movies else [],
         "nr_movies": nr_movies if nr_movies else [],
         "tv_movies": tv_movies if tv_movies else [],
@@ -83,83 +79,30 @@ def all_movies(request):
 
 
 @login_required(login_url="/auth/login")
-def g_movies(request):
-    g_movies = g_movies = (
-        Movie.objects.filter(rating="G").order_by("title").values("title").distinct()
-    )
+def movies_by_rating(request, rating):
+    # Map URL rating slug to database rating and template details
+    rating_config = {
+        "g": {"db_rating": "G", "var_name": "g_movies", "template": "g_movies.html"},
+        "pg": {"db_rating": "PG", "var_name": "pg_movies", "template": "pg_movies.html"},
+        "pg-13": {"db_rating": "PG-13", "var_name": "pg13_movies", "template": "pg13_movies.html"},
+        "r": {"db_rating": "R", "var_name": "r_movies", "template": "r_movies.html"},
+        "nr": {"db_rating": "NR", "var_name": "nr_movies", "template": "nr_movies.html"},
+        "tv": {"db_rating": "TV", "var_name": "tv_movies", "template": "tv_shows.html"},
+    }
 
-    ctx = {"g_movies": g_movies}
-    return render(request, "moviedb/g_movies.html", ctx)
+    config = rating_config.get(rating.lower())
+    if not config:
+        return redirect("all")
 
-
-@login_required(login_url="/auth/login")
-def pg_movies(request):
-    pg_movies = (
-        Movie.objects.all()
-        .filter(rating="PG")
+    movies = (
+        Movie.objects.filter(rating=config["db_rating"])
         .order_by("title")
         .values("title")
         .distinct()
     )
 
-    ctx = {"pg_movies": pg_movies}
-    return render(request, "moviedb/pg_movies.html", ctx)
-
-
-@login_required(login_url="/auth/login")
-def pg13_movies(request):
-    pg13_movies = (
-        Movie.objects.all()
-        .filter(rating="PG-13")
-        .order_by("title")
-        .values("title")
-        .distinct()
-    )
-
-    ctx = {"pg13_movies": pg13_movies}
-    return render(request, "moviedb/pg13_movies.html", ctx)
-
-
-@login_required(login_url="/auth/login")
-def r_movies(request):
-    r_movies = (
-        Movie.objects.all()
-        .filter(rating="R")
-        .order_by("title")
-        .values("title")
-        .distinct()
-    )
-
-    ctx = {"r_movies": r_movies}
-    return render(request, "moviedb/r_movies.html", ctx)
-
-
-@login_required(login_url="/auth/login")
-def nr_movies(request):
-    nr_movies = (
-        Movie.objects.all()
-        .filter(rating="NR")
-        .order_by("title")
-        .values("title")
-        .distinct()
-    )
-
-    ctx = {"nr_movies": nr_movies}
-    return render(request, "moviedb/nr_movies.html", ctx)
-
-
-@login_required(login_url="/auth/login")
-def tv_movies(request):
-    tv_movies = (
-        Movie.objects.all()
-        .filter(rating="TV")
-        .order_by("title")
-        .values("title")
-        .distinct()
-    )
-
-    ctx = {"tv_movies": tv_movies}
-    return render(request, "moviedb/tv_shows.html", ctx)
+    ctx = {config["var_name"]: movies}
+    return render(request, f"moviedb/{config['template']}", ctx)
 
 
 @login_required(login_url="/auth/login")
@@ -167,8 +110,23 @@ def add(request):
     if request.method == "POST":
         form = AddMovieForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect("home")
+            # Check for duplicate before saving
+            title = form.cleaned_data["title"]
+            rating = form.cleaned_data["rating"]
+            disk = form.cleaned_data["disk"]
+
+            if Movie.objects.filter(title=title, rating=rating, disk=disk).exists():
+                # Get the display value for the disk type (e.g., "DVD" instead of "dvd")
+                disk_display = Movie(disk=disk).get_disk_display()
+                messages.warning(
+                    request,
+                    f"The movie '{title}' ({rating}, {disk_display}) is already in the Steyaert Movie Database.",
+                )
+                return redirect("add")
+            else:
+                form.save()
+                messages.success(request, f"'{title}' has been added to the Steyaert Movie Database!")
+                return redirect("add")
     else:
         form = AddMovieForm()
 
@@ -181,7 +139,7 @@ def search_results(request, title: str):
     if not _title or _title.lower() == "title":
         ctx = {"titles": ["Invalid Search"], "t": _title}
     else:
-        results = [m for m in Movie.objects.all() if _title.lower() in m.title.lower()]
+        results = Movie.objects.filter(title__icontains=_title)
         if results:
             ctx = {"titles": results, "t": _title}
         else:
@@ -199,7 +157,11 @@ def random(request):
 
 
 @login_required(login_url="/auth/login")
-def random_results(request):
+def random_results(request, result_id=None):
+    # Purge old results (>7 days) on-the-fly
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    RandomMovieResult.objects.filter(created_at__lt=seven_days_ago).delete()
+
     if request.method == "POST":
         form = RandomMovieForm(request.POST)
         if form.is_valid():
@@ -221,19 +183,18 @@ def random_results(request):
 
             generated = sample(movie_list, num_movies)
 
-            # Store in session
-            request.session["random_results"] = generated
+            # Store in database instead of session
+            result = RandomMovieResult.objects.create(movies=generated)
 
-            # Redirect so that reloads won't resubmit the form
-            return redirect("random_results")
+            # Redirect to shareable URL
+            return redirect("random_results", result_id=result.id)
 
-    # If GET: show results only if they exist in session
-    generated = request.session.pop("random_results", None)
+    # GET request - display results by UUID
+    if result_id:
+        result = get_object_or_404(RandomMovieResult, id=result_id)
+        return render(request, "moviedb/random_results.html", {"generated": result.movies})
 
-    if generated:
-        return render(request, "moviedb/random_results.html", {"generated": generated})
-
-    # No results → back to generator
+    # No result_id → back to generator
     return redirect("random_movie_generator")
 
 
@@ -252,7 +213,7 @@ def add_mass_movies(request):
 
         if not (file_name.endswith(".csv") or file_name.endswith(".xlsx")):
             messages.error(request, "Please upload a valid .csv or .xlsx file.")
-            return redirect("add_mass_movies")
+            return redirect("add_mass")
 
         try:
             valid_ratings = {
@@ -322,8 +283,9 @@ def add_mass_movies(request):
                 rating = rating.upper()
 
                 if Movie.objects.filter(title=title, rating=rating, disk=disk).exists():
+                    disk_display = Movie(disk=disk).get_disk_display()
                     messages.info(
-                        request, f"Skipping duplicate movie: {title} ({rating}, {disk})"
+                        request, f"Skipping duplicate movie: {title} ({rating}, {disk_display})"
                     )
                     continue
 

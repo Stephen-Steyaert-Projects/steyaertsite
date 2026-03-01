@@ -26,7 +26,7 @@
     <title>{% block title %}Title{% endblock %}|Steyaert Movie Database</title>
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
     <script defer src="{% static 'js/moviedb.js' %}"></script>
-    <script defer src="{% block scripts %}{% endblock %}"></script>
+    {% block scripts %}{% endblock %}
     <style>
         /* Make nav-pills stack nicely on mobile */
         @media (max-width: 1399.98px) {
@@ -73,31 +73,38 @@
                     Movies By Rating
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="ratingDropdown">
-                    <li><a class="dropdown-item nav-link" href="{% url 'g_movies' %}">G</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'movies_by_rating' rating='g' %}">G</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item nav-link" href="{% url 'pg_movies' %}">PG</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'movies_by_rating' rating='pg' %}">PG</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item nav-link" href="{% url 'pg-13_movies' %}">PG-13</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'movies_by_rating' rating='pg-13' %}">PG-13</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item nav-link" href="{% url 'r_movies' %}">R</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'movies_by_rating' rating='r' %}">R</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item nav-link" href="{% url 'nr_movies' %}">NR</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'movies_by_rating' rating='nr' %}">NR</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item nav-link" href="{% url 'tv_shows' %}">TV</a></li>
+                    <li><a class="dropdown-item nav-link" href="{% url 'movies_by_rating' rating='tv' %}">TV</a></li>
                 </ul>
                 </li>
 
+                {% if user.is_staff %}
+                <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="addMovieDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Add Movies
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="addMovieDropdown">
+                    <li><a class="dropdown-item" href="{% url 'add' %}">Single Movie</a></li>
+                    <li><a class="dropdown-item" href="{% url 'add_mass' %}">Mass Movies</a></li>
+                </ul>
+                </li>
+                {% else %}
                 <li class="nav-item">
                 <a class="nav-link {% block addClass %}{%endblock%}" href="{% url 'add' %}">Add a Movie</a>
                 </li>
+                {% endif %}
                 <li class="nav-item">
                 <a class="nav-link {% block randomClass %}{%endblock%}" href="{% url 'random_movie_generator' %}">Random Movie Generator</a>
                 </li>
-                {% if user.is_staff %}
-                    <li class="nav-item">
-                        <a class="nav-link {% block addMassClass %}{%endblock%}" href="{% url 'add_mass' %}">Mass Add Movies</a>
-                    </li>
-                {% endif %}
                 {% if user.is_authenticated %}
                     <li class="nav-item">
                         <form action="{% url 'logout' %}" method="post" class="d-inline">
