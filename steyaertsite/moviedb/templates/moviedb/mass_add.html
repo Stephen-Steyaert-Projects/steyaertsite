@@ -10,16 +10,19 @@
   <div class="card bg-dark text-light shadow-lg p-4 w-100" style="max-width: 400px;">
     <h2 class="text-center mb-1">Mass Add Movies</h2>
     <h5 class="text-center mb-4 text-warning">
-      Upload a CSV with first row being the following: <br/>
-      <code>title,rating,disk</code><br/>
-       Then follow example below: <br/><code>The Matrix,R,blu-ray</code>
+      Upload a CSV or Excel file in one of these formats:<br/>
+      <strong>CSV:</strong> <code>title,rating,disk</code><br/>
+      Example: <code>The Matrix,R,blu-ray</code><br/>
+      <strong>Excel:</strong> <code>Title,Rated,4k,Blu-Ray,DVD</code><br/>
+      Mark disk format with <code>X</code><br/>
+      <small class="text-info">Note: Data must be in the first sheet</small>
     </h5>
 
     <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
       <div class="form-floating mb-3">
-        <input type="file" name="csv_file" accept=".csv" required class="form-control bg-dark text-light" id="csvFileInput">
-        <label for="csvFileInput">CSV File</label>
+        <input type="file" name="csv_file" accept=".csv,.xlsx" required class="form-control bg-dark text-light" id="csvFileInput">
+        <label for="csvFileInput">CSV or Excel File</label>
       </div>
       <button type="submit" class="btn btn-light w-100">Upload</button>
     </form>

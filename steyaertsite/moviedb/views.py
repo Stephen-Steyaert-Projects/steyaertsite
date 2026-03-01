@@ -6,6 +6,7 @@ from .models import Movie
 from django.contrib import messages
 import csv
 import io
+from openpyxl import load_workbook
 
 
 def index(request):
@@ -246,18 +247,14 @@ def is_admin(user):
 @user_passes_test(is_admin)
 def add_mass_movies(request):
     if request.method == "POST" and request.FILES.get("csv_file"):
-        csv_file = request.FILES["csv_file"]
+        uploaded_file = request.FILES["csv_file"]
+        file_name = uploaded_file.name.lower()
 
-        if not csv_file.name.endswith(".csv"):
-            messages.error(request, "Please upload a valid .csv file.")
+        if not (file_name.endswith(".csv") or file_name.endswith(".xlsx")):
+            messages.error(request, "Please upload a valid .csv or .xlsx file.")
             return redirect("add_mass_movies")
 
         try:
-            decoded_file = csv_file.read().decode("utf-8")
-            io_string = io.StringIO(decoded_file)
-            reader = csv.reader(io_string)
-            next(reader)  # Skip header row
-
             valid_ratings = {
                 choice[0].upper() for choice in Movie._meta.get_field("rating").choices
             }
@@ -265,15 +262,65 @@ def add_mass_movies(request):
                 choice[0].lower() for choice in Movie._meta.get_field("disk").choices
             }
 
+            rows = []
+            if file_name.endswith(".csv"):
+                raw_data = uploaded_file.read()
+                # Try UTF-8 with BOM first (Excel on Windows), then UTF-8, then fallback to latin-1
+                try:
+                    decoded_file = raw_data.decode("utf-8-sig")
+                except UnicodeDecodeError:
+                    try:
+                        decoded_file = raw_data.decode("utf-8")
+                    except UnicodeDecodeError:
+                        decoded_file = raw_data.decode("latin-1")
+                io_string = io.StringIO(decoded_file)
+                reader = csv.reader(io_string)
+                next(reader)  # Skip header row
+                rows = list(reader)
+            elif file_name.endswith(".xlsx"):
+                workbook = load_workbook(uploaded_file)
+                # Always use the first sheet
+                sheet = workbook.worksheets[0]
+                rows = list(sheet.iter_rows(min_row=2, values_only=True))
+
             count = 0
-            for row in reader:
-                if len(row) != 3:
-                    messages.warning(request, f"Skipping invalid row: {row}")
+            for row in rows:
+                if not row:
                     continue
 
-                title, rating, disk = [item.strip() for item in row]
+                # Handle both formats: 3-column (title,rating,disk) or 5-column (title,rated,4k,blu-ray,dvd)
+                if len(row) == 5:
+                    # Excel format: Title, Rated, 4k, Blu-Ray, DVD
+                    title = str(row[0]).strip() if row[0] else ""
+                    rating = str(row[1]).strip() if row[1] else ""
+
+                    # Check which disk format has an X
+                    disk = None
+                    if row[2] and str(row[2]).strip().upper() == "X":
+                        disk = "4k"
+                    elif row[3] and str(row[3]).strip().upper() == "X":
+                        disk = "blu-ray"
+                    elif row[4] and str(row[4]).strip().upper() == "X":
+                        disk = "dvd"
+
+                    if not disk:
+                        messages.warning(request, f"Skipping row with no disk format marked: {title}")
+                        continue
+
+                elif len(row) == 3:
+                    # CSV format: title, rating, disk
+                    title, rating, disk = [str(item).strip() if item else "" for item in row]
+                    disk = disk.lower()
+                else:
+                    messages.warning(request, f"Skipping invalid row (expected 3 or 5 columns): {row}")
+                    continue
+
+                if not title or not rating:
+                    messages.warning(request, f"Skipping row with empty values: {row}")
+                    continue
+
                 rating = rating.upper()
-                disk = disk.lower()
+
                 if Movie.objects.filter(title=title, rating=rating, disk=disk).exists():
                     messages.info(
                         request, f"Skipping duplicate movie: {title} ({rating}, {disk})"
