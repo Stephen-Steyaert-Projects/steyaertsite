@@ -2,6 +2,12 @@ version = 1
 revision = 3
 requires-python = ">=3.10"
 
+[manifest]
+members = [
+    "steyeartsite",
+    "swccg-site",
+]
+
 [[package]]
 name = "asgiref"
 version = "3.8.1"
@@ -166,6 +172,33 @@ requires-dist = [
     { name = "django", specifier = ">=5.2.3" },
     { name = "openpyxl", specifier = ">=3.1.5" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "python-dotenv", specifier = ">=1.1.0" }]
+prod = [
+    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "psycopg2-binary", specifier = ">=2.9.10" },
+]
+
+[[package]]
+name = "swccg-site"
+version = "0.1.0"
+source = { virtual = "swccg-site" }
+dependencies = [
+    { name = "django" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "python-dotenv" },
+]
+prod = [
+    { name = "gunicorn" },
+    { name = "psycopg2-binary" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "django", specifier = ">=5.2.3" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "python-dotenv", specifier = ">=1.1.0" }]

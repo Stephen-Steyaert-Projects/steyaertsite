@@ -1,17 +1,16 @@
-name: Build and Push to GHCR
+name: Build and Push Steyaert Site to GHCR
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'steyaertsite/**'
-      - '.github/workflows/build-and-push.yaml'
+      - 'swccg-site/**'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/steyaert-site
+  IMAGE_NAME: ${{ github.repository }}/swccg-site
 
 jobs:
   build-and-push:
@@ -47,8 +46,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./steyaertsite
-          file: ./steyaertsite/Dockerfile
+          context: ./swccg-site
+          file: ./swccg-site/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
