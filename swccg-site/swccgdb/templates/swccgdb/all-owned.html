@@ -3,24 +3,120 @@
 {% block title %}My Cards{% endblock %}
 
 {% block content %}
-<h1 class="mb-3">My Cards</h1>
+<div class="d-flex align-items-center gap-3 mb-3">
+  <h1 class="mb-0">My Cards</h1>
+  <div class="btn-group" role="group">
+    <button id="btn-owned" type="button" class="btn btn-light btn-sm active" onclick="showMode('owned')">Owned</button>
+    <button id="btn-missing" type="button" class="btn btn-outline-light btn-sm" onclick="showMode('missing')">Missing</button>
+  </div>
+</div>
 
-<ul class="nav nav-tabs mb-3" id="setTabs" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-all" type="button" role="tab">
-      All
-    </button>
-  </li>
-  {% for set_name in sets %}
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-{{ forloop.counter }}" type="button" role="tab">
-      {{ set_name }}
-    </button>
-  </li>
-  {% endfor %}
-</ul>
+<!-- Owned Tabs -->
+<div id="owned-section">
+  <ul class="nav nav-tabs mb-3" id="ownedTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#owned-tab-all" type="button" role="tab">All</button>
+    </li>
+    {% for set_name in owned_sets %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#owned-tab-{{ forloop.counter }}" type="button" role="tab">{{ set_name }}</button>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="owned-tab-all" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th><th>Copies</th></tr></thead>
+        <tbody>
+          {% for set_name, owned_cards in owned_sets.items %}
+            {% for owned in owned_cards %}
+            <tr data-name="{{ owned.card.name|lower }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
+              <td>{% if owned.card.image %}<a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>{% else %}{{ owned.card.name }}{% endif %}</td>
+              <td>{{ set_name }}</td>
+              <td>{{ owned.card.get_card_type_display }}</td>
+              <td>{{ owned.card.get_side_display }}</td>
+              <td>{{ owned.copies }}</td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for set_name, owned_cards in owned_sets.items %}
+    <div class="tab-pane fade" id="owned-tab-{{ forloop.counter }}" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Type</th><th>Side</th><th>Copies</th></tr></thead>
+        <tbody class="set-cards-body">
+          {% for owned in owned_cards %}
+          <tr data-name="{{ owned.card.name|lower }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
+            <td>{% if owned.card.image %}<a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>{% else %}{{ owned.card.name }}{% endif %}</td>
+            <td>{{ owned.card.get_card_type_display }}</td>
+            <td>{{ owned.card.get_side_display }}</td>
+            <td>{{ owned.copies }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-secondary">No cards owned in this set.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 
-<div class="mb-3 d-flex gap-2">
+<!-- Missing Tabs -->
+<div id="missing-section" style="display:none;">
+  <ul class="nav nav-tabs mb-3" id="missingTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#missing-tab-all" type="button" role="tab">All</button>
+    </li>
+    {% for set_name in missing_sets %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#missing-tab-{{ forloop.counter }}" type="button" role="tab">{{ set_name }}</button>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="missing-tab-all" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th></tr></thead>
+        <tbody>
+          {% for set_name, cards in missing_sets.items %}
+            {% for card in cards %}
+            <tr data-name="{{ card.name|lower }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
+              <td>{% if card.image %}<a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>{% else %}{{ card.name }}{% endif %}</td>
+              <td>{{ set_name }}</td>
+              <td>{{ card.get_card_type_display }}</td>
+              <td>{{ card.get_side_display }}</td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for set_name, cards in missing_sets.items %}
+    <div class="tab-pane fade" id="missing-tab-{{ forloop.counter }}" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Type</th><th>Side</th></tr></thead>
+        <tbody class="set-cards-body">
+          {% for card in cards %}
+          <tr data-name="{{ card.name|lower }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
+            <td>{% if card.image %}<a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>{% else %}{{ card.name }}{% endif %}</td>
+            <td>{{ card.get_card_type_display }}</td>
+            <td>{{ card.get_side_display }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-secondary">No missing cards in this set.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Shared filters -->
+<div class="mb-3 d-flex gap-2 mt-3">
   <input type="text" id="cardSearch" class="form-control bg-dark text-light border-secondary" placeholder="Search by name...">
   <select id="typeFilter" class="form-select bg-dark text-light border-secondary" style="max-width: 180px;">
     <option value="">All Types</option>
@@ -45,76 +141,6 @@
   </select>
 </div>
 
-<div class="tab-content">
-  <!-- All Owned Tab -->
-  <div class="tab-pane fade show active" id="tab-all" role="tabpanel">
-    <table class="table table-dark table-hover">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Set</th>
-          <th>Type</th>
-          <th>Side</th>
-          <th>Copies</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for set_name, owned_cards in sets.items %}
-          {% for owned in owned_cards %}
-          <tr data-name="{{ owned.card.name|lower }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
-            <td>
-              {% if owned.card.image %}
-              <a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>
-              {% else %}
-              {{ owned.card.name }}
-              {% endif %}
-            </td>
-            <td>{{ set_name }}</td>
-            <td>{{ owned.card.get_card_type_display }}</td>
-            <td>{{ owned.card.get_side_display }}</td>
-            <td>{{ owned.copies }}</td>
-          </tr>
-          {% endfor %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Per-Set Tabs -->
-  {% for set_name, owned_cards in sets.items %}
-  <div class="tab-pane fade" id="tab-{{ forloop.counter }}" role="tabpanel">
-    <table class="table table-dark table-hover">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Side</th>
-          <th>Copies</th>
-        </tr>
-      </thead>
-      <tbody class="set-cards-body">
-        {% for owned in owned_cards %}
-        <tr data-name="{{ owned.card.name|lower }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
-          <td>
-            {% if owned.card.image %}
-            <a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>
-            {% else %}
-            {{ owned.card.name }}
-            {% endif %}
-          </td>
-          <td>{{ owned.card.get_card_type_display }}</td>
-          <td>{{ owned.card.get_side_display }}</td>
-          <td>{{ owned.copies }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4" class="text-secondary">No cards owned in this set.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endfor %}
-</div>
-
 <!-- Card Image Modal -->
 <div class="modal fade" id="cardModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -133,6 +159,14 @@
   const cardModal = new bootstrap.Modal(document.getElementById('cardModal'));
   const cardModalImg = document.getElementById('cardModalImg');
 
+  function showMode(mode) {
+    document.getElementById('owned-section').style.display = mode === 'owned' ? '' : 'none';
+    document.getElementById('missing-section').style.display = mode === 'missing' ? '' : 'none';
+    document.getElementById('btn-owned').className = mode === 'owned' ? 'btn btn-light btn-sm active' : 'btn btn-outline-light btn-sm';
+    document.getElementById('btn-missing').className = mode === 'missing' ? 'btn btn-light btn-sm active' : 'btn btn-outline-light btn-sm';
+    applyFilters();
+  }
+
   document.addEventListener('click', e => {
     const link = e.target.closest('.card-name-link');
     if (!link) return;
@@ -143,7 +177,10 @@
   });
 
   function getActiveBody() {
-    const activePane = document.querySelector('.tab-pane.active');
+    const visibleSection = document.getElementById('owned-section').style.display !== 'none'
+      ? document.getElementById('owned-section')
+      : document.getElementById('missing-section');
+    const activePane = visibleSection.querySelector('.tab-pane.active');
     return activePane ? activePane.querySelector('tbody') : null;
   }
 
@@ -169,5 +206,14 @@
   document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', applyFilters);
   });
+
+  // Activate set tab from ?set= query param
+  const params = new URLSearchParams(window.location.search);
+  const targetSet = params.get('set');
+  if (targetSet) {
+    const btn = [...document.querySelectorAll('#ownedTabs [data-bs-toggle="tab"]')]
+      .find(b => b.textContent.trim() === targetSet);
+    if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+  }
 </script>
 {% endblock %}
