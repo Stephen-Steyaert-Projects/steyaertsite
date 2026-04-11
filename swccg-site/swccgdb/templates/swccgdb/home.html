@@ -29,7 +29,9 @@
   </div>
   {% endfor %}
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
   document.querySelectorAll('.progress-bar[data-pct]').forEach(bar => {
     bar.style.width = bar.dataset.pct + '%';

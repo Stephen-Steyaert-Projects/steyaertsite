@@ -1,23 +1,51 @@
-<nav class="navbar navbar-expand-lg bg-body-tertiary">
+<nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
   <div class="container-fluid">
-    <a class="navbar-brand" href="#">SWCCGDB</a>
+    <a class="navbar-brand" href="{% if user.is_authenticated %}{% url 'home' %}{% else %}{% url 'index' %}{% endif %}">SWCCGDB</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="nav nav-pills me-auto">
+        {% if user.is_authenticated %}
         <li class="nav-item">
           <a class="nav-link {% if current_url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
         </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link {% if current_url_name == 'all_cards' %}active{% endif %}" href="{% url 'all_cards' %}">All Cards</a>
+        </li>
+        {% if user.is_authenticated %}
+        <li class="nav-item">
+          <a class="nav-link {% if current_url_name == 'all_owned' %}active{% endif %}" href="{% url 'all_owned' %}">My Collection</a>
+        </li>
+        {% endif %}
+        {% if user.is_staff %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if current_url_name == 'add_card' or current_url_name == 'add_set' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">Admin</a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item {% if current_url_name == 'add_card' %}active{% endif %}" href="{% url 'add_card' %}">Add Card</a></li>
+            <li><a class="dropdown-item {% if current_url_name == 'add_set' %}active{% endif %}" href="{% url 'add_set' %}">Add Set</a></li>
+          </ul>
+        </li>
+        {% endif %}
       </ul>
+      <form class="d-flex me-3" action="{% url 'all_cards' %}" method="get">
+        <div class="input-group input-group-sm">
+          <input class="form-control bg-dark text-light border-secondary" type="search" name="q" placeholder="Search cards..." value="{{ request.GET.q }}">
+          <button type="submit" class="btn btn-outline-light">Search</button>
+        </div>
+      </form>
       <ul class="nav nav-pills">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link {% if current_url_name == 'logout' %}active{% endif %}" href="{% url 'logout' %}">Logout</a>
+            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
           </li>
         {% else %}
           <li class="nav-item">
             <a class="nav-link {% if current_url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if current_url_name == 'register' %}active{% endif %}" href="{% url 'register' %}">Register</a>
           </li>
         {% endif %}
       </ul>

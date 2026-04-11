@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 
 class Set(models.Model):
     name = models.CharField(max_length=100)
-    abbreviation = models.CharField(max_length=10, blank=True)
-    released = models.PositiveSmallIntegerField(null=True, blank=True)
+    released = models.DateField(null=True, blank=True)
+    image = models.ImageField(upload_to='sets/', blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -60,10 +60,15 @@ class Card(models.Model):
 class OwnedCard(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_cards')
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='owned_by')
-    copies = models.PositiveSmallIntegerField(default=0)
+    copies_bb = models.PositiveSmallIntegerField(default=0, verbose_name='Black Border (Limited)')
+    copies_wb = models.PositiveSmallIntegerField(default=0, verbose_name='White Border (Unlimited)')
 
     class Meta:
         unique_together = ('user', 'card')
 
+    @property
+    def copies(self):
+        return self.copies_bb + self.copies_wb
+
     def __str__(self):
-        return f"{self.user} — {self.card} x{self.copies}"
+        return f"{self.user} — {self.card} BB:{self.copies_bb} WB:{self.copies_wb}"
