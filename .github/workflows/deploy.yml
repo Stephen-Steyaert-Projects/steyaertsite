@@ -4,6 +4,7 @@
 name: Deploy to Production
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["Build and Push Steyaert Site to GHCR", 
                 "Build and Push SWCCG Site to GHCR"]
