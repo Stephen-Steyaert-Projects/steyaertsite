@@ -5,7 +5,8 @@ name: Deploy to Production
 
 on:
   workflow_run:
-    workflows: ["Build and Push to GHCR"]
+    workflows: ["Build and Push Steyaert Site to GHCR", 
+                "Build and Push SWCCG Site to GHCR"]
     types:
       - completed
     branches:
