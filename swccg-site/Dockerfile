@@ -1,5 +1,5 @@
 # ---- Stage 1: Build dependencies ----
-FROM python:3.12-alpine3.22 AS builder
+FROM python:3.12-alpine3.23 AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --root-user-action=ignore --prefer-binary -r requirements.txt
 
 # ---- Stage 2: Runtime image ----
-FROM python:3.12-alpine3.22
+FROM python:3.12-alpine3.23
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
