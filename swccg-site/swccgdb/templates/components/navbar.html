@@ -1,6 +1,7 @@
 <style>
   @media (max-width: 991px) {
     .nav-link {padding-left: 1rem;}
+    #navbar-search { padding: 0.5rem 0; }
   }
   @media (min-width: 992px) {
     #auth-nav-item { min-width: 90px; }
@@ -38,7 +39,7 @@
         </li>
         {% endif %}
       </ul>
-      <form class="d-flex me-3" action="{% url 'all_cards' %}" method="get">
+      <form id="navbar-search" class="d-flex me-3" action="{% url 'all_cards' %}" method="get">
         <div class="input-group input-group-sm">
           <input class="form-control bg-dark text-light border-secondary" type="search" name="q" placeholder="Search cards..." value="{{ request.GET.q }}">
           <button type="submit" class="btn btn-outline-light">Search</button>
