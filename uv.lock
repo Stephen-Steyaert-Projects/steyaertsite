@@ -284,6 +284,7 @@ version = "0.1.0"
 source = { virtual = "swccg-site" }
 dependencies = [
     { name = "django" },
+    { name = "openpyxl" },
     { name = "pillow" },
 ]
 
@@ -299,6 +300,7 @@ prod = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=5.2.3" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=12.2.0" },
 ]
 
