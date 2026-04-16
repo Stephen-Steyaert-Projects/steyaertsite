@@ -10,7 +10,7 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav nav-pills me-auto align-items-start">
+      <ul class="navbar-nav nav-pills me-auto">
         {% if user.is_authenticated %}
         <li class="nav-item">
           <a class="nav-link {% if current_url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
@@ -34,13 +34,13 @@
         </li>
         {% endif %}
       </ul>
-      <form class="d-flex me-lg-3 my-2 my-lg-0 w-100 w-lg-auto" action="{% url 'all_cards' %}" method="get">
+      <form class="d-flex me-3" action="{% url 'all_cards' %}" method="get">
         <div class="input-group input-group-sm">
           <input class="form-control bg-dark text-light border-secondary" type="search" name="q" placeholder="Search cards..." value="{{ request.GET.q }}">
           <button type="submit" class="btn btn-outline-light">Search</button>
         </div>
       </form>
-      <ul class="navbar-nav nav-pills align-items-start">
+      <ul class="navbar-nav nav-pills">
         <li class="nav-item" id="auth-nav-item">
           {% if user.is_authenticated %}
             <form method="post" action="{% url 'logout' %}">
