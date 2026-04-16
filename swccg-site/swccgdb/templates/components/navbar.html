@@ -36,7 +36,7 @@
         </div>
       </form>
       <ul class="nav nav-pills">
-        <li class="nav-item" style="min-width: 70px;">
+        <li class="nav-item" style="min-width: 90px;">
           {% if user.is_authenticated %}
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
