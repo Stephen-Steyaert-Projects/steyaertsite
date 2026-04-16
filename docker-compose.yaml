@@ -2,7 +2,7 @@
 services:
 
   swccg:
-    image: ghcr.io/stephen-steyaert-projects/swccg/swccg:latest
+    image: ghcr.io/stephen-steyaert-projects/steyaertsite/swccg-site:latest
     depends_on:
       db:
         condition: service_healthy
