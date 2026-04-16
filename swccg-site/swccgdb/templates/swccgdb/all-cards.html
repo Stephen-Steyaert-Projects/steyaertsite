@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}All Cards{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">All Cards</h1>
+
+<ul class="nav nav-tabs mb-3" id="setTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-all" type="button" role="tab">
+      All
+    </button>
+  </li>
+  {% for set in sets %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-{{ forloop.counter }}" type="button" role="tab">
+      {{ set.name }}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<div class="mb-3 d-flex gap-2">
+  <input type="text" id="cardSearch" class="form-control bg-dark text-light border-secondary" placeholder="Search by name..." value="{{ request.GET.q }}">
+  <select id="typeFilter" class="form-select bg-dark text-light border-secondary" style="max-width: 180px;">
+    <option value="">All Types</option>
+    <option value="admirals_order">Admiral's Order</option>
+    <option value="character">Character</option>
+    <option value="creature">Creature</option>
+    <option value="device">Device</option>
+    <option value="effect">Effect</option>
+    <option value="epic_event">Epic Event</option>
+    <option value="interrupt">Interrupt</option>
+    <option value="jedi_test">Jedi Test</option>
+    <option value="location">Location</option>
+    <option value="objective">Objective</option>
+    <option value="starship">Starship</option>
+    <option value="vehicle">Vehicle</option>
+    <option value="weapon">Weapon</option>
+  </select>
+  <select id="sideFilter" class="form-select bg-dark text-light border-secondary" style="max-width: 150px;">
+    <option value="">All Sides</option>
+    <option value="Light Side">Light Side</option>
+    <option value="Dark Side">Dark Side</option>
+  </select>
+</div>
+
+<div class="tab-content">
+  <!-- All Cards Tab -->
+  <div class="tab-pane fade show active" id="tab-all" role="tabpanel">
+    <table class="table table-dark table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Set</th>
+          <th>Type</th>
+          <th>Side</th>
+        </tr>
+      </thead>
+      <tbody id="all-cards-body">
+        {% for set in sets %}
+          {% for card in set.cards.all %}
+          <tr data-name="{{ card.name|lower }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
+            <td>
+              {% if card.image %}
+              <a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>
+              {% else %}
+              {{ card.name }}
+              {% endif %}
+            </td>
+            <td>{{ set.name }}</td>
+            <td>{{ card.get_card_type_display }}</td>
+            <td>{{ card.get_side_display }}</td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Per-Set Tabs -->
+  {% for set in sets %}
+  <div class="tab-pane fade" id="tab-{{ forloop.counter }}" role="tabpanel">
+    <table class="table table-dark table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Side</th>
+        </tr>
+      </thead>
+      <tbody class="set-cards-body">
+        {% for card in set.cards.all %}
+        <tr data-name="{{ card.name|lower }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
+          <td>
+            {% if card.image %}
+            <a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>
+            {% else %}
+            {{ card.name }}
+            {% endif %}
+          </td>
+          <td>{{ card.get_card_type_display }}</td>
+          <td>{{ card.get_side_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-secondary">No cards yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Card Image Modal -->
+<div class="modal fade" id="cardModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-transparent border-0 shadow-none">
+      <div class="modal-body p-0 text-center">
+        <img id="cardModalImg" src="" alt="" class="img-fluid rounded" style="max-height: 80vh; cursor: pointer;" data-bs-dismiss="modal">
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const searchInput = document.getElementById('cardSearch');
+  const typeFilter = document.getElementById('typeFilter');
+  const sideFilter = document.getElementById('sideFilter');
+  const cardModal = new bootstrap.Modal(document.getElementById('cardModal'));
+  const cardModalImg = document.getElementById('cardModalImg');
+
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.card-name-link');
+    if (!link) return;
+    e.preventDefault();
+    cardModalImg.src = link.dataset.img;
+    cardModalImg.alt = link.dataset.cardName;
+    cardModal.show();
+  });
+
+  function getActiveBody() {
+    const activePane = document.querySelector('.tab-pane.active');
+    return activePane ? activePane.querySelector('tbody') : null;
+  }
+
+  function applyFilters() {
+    const name = searchInput.value.toLowerCase();
+    const type = typeFilter.value.toLowerCase();
+    const side = sideFilter.value;
+    const tbody = getActiveBody();
+    if (!tbody) return;
+
+    tbody.querySelectorAll('tr[data-name]').forEach(row => {
+      const matchName = row.dataset.name.includes(name);
+      const matchType = !type || row.dataset.type === type;
+      const matchSide = !side || row.dataset.side === side;
+      row.style.display = matchName && matchType && matchSide ? '' : 'none';
+    });
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  typeFilter.addEventListener('change', applyFilters);
+  sideFilter.addEventListener('change', applyFilters);
+
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+    btn.addEventListener('shown.bs.tab', applyFilters);
+  });
+
+  if (searchInput.value) applyFilters();
+
+</script>
+{% endblock %}

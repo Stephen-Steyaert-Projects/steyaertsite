@@ -1,4 +1,4 @@
-name: Build and Push Steyaert Site to GHCR
+name: Build and Push SWCCG Site to GHCR
 
 on:
   push:

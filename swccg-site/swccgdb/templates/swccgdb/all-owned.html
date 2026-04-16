@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+
+{% block title %}My Cards{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+  <h1 class="mb-0">My Cards</h1>
+  <div class="btn-group" role="group">
+    <button id="btn-owned" type="button" class="btn btn-light btn-sm active" onclick="showMode('owned')">Owned</button>
+    <button id="btn-missing" type="button" class="btn btn-outline-light btn-sm" onclick="showMode('missing')">Missing</button>
+  </div>
+  <div class="ms-auto d-flex gap-2 align-items-center">
+    <a href="{% url 'export_collection_by_set' %}" class="btn btn-outline-light btn-sm">Export</a>
+    <form method="post" action="{% url 'import_collection_by_set' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="input-group input-group-sm">
+        <input type="file" name="file" accept=".xlsx" class="form-control bg-dark text-light border-secondary">
+        <button type="submit" class="btn btn-outline-light">Import</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Owned Tabs -->
+<div id="owned-section">
+  <ul class="nav nav-tabs" id="ownedTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#owned-tab-all" type="button" role="tab">All</button>
+    </li>
+    {% for set_name in owned_sets %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#owned-tab-{{ forloop.counter }}" type="button" role="tab">{{ set_name }}</button>
+    </li>
+    {% endfor %}
+  </ul>
+  <div id="shared-filters" class="d-flex gap-2 my-3">
+    <input type="text" id="cardSearch" class="form-control bg-dark text-light border-secondary" placeholder="Search by name...">
+    <select id="typeFilter" class="form-select bg-dark text-light border-secondary" style="max-width: 180px;">
+      <option value="">All Types</option>
+      <option value="admirals_order">Admiral's Order</option>
+      <option value="character">Character</option>
+      <option value="creature">Creature</option>
+      <option value="device">Device</option>
+      <option value="effect">Effect</option>
+      <option value="epic_event">Epic Event</option>
+      <option value="interrupt">Interrupt</option>
+      <option value="jedi_test">Jedi Test</option>
+      <option value="location">Location</option>
+      <option value="objective">Objective</option>
+      <option value="starship">Starship</option>
+      <option value="vehicle">Vehicle</option>
+      <option value="weapon">Weapon</option>
+    </select>
+    <select id="sideFilter" class="form-select bg-dark text-light border-secondary" style="max-width: 150px;">
+      <option value="">All Sides</option>
+      <option value="Light Side">Light Side</option>
+      <option value="Dark Side">Dark Side</option>
+    </select>
+  </div>
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="owned-tab-all" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th><th style="width:120px;">BB</th><th style="width:120px;">WB</th></tr></thead>
+        <tbody>
+          {% for set_name, owned_cards in owned_sets.items %}
+            {% for owned in owned_cards %}
+            <tr data-name="{{ owned.card.name|lower }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
+              <td>{% if owned.card.image %}<a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>{% else %}{{ owned.card.name }}{% endif %}</td>
+              <td>{{ set_name }}</td>
+              <td>{{ owned.card.get_card_type_display }}</td>
+              <td>{{ owned.card.get_side_display }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-1">
+                  <button class="btn btn-outline-light btn-sm remove-copy-btn" data-url="{% url 'remove_copy' owned.card.id 'bb' %}">-</button>
+                  <span class="copy-count-bb mx-1">{{ owned.copies_bb }}</span>
+                  <button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' owned.card.id 'bb' %}">+</button>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-1">
+                  <button class="btn btn-outline-light btn-sm remove-copy-btn" data-url="{% url 'remove_copy' owned.card.id 'wb' %}">-</button>
+                  <span class="copy-count-wb mx-1">{{ owned.copies_wb }}</span>
+                  <button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' owned.card.id 'wb' %}">+</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for set_name, owned_cards in owned_sets.items %}
+    <div class="tab-pane fade" id="owned-tab-{{ forloop.counter }}" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Type</th><th>Side</th><th style="width:120px;">BB</th><th style="width:120px;">WB</th></tr></thead>
+        <tbody class="set-cards-body">
+          {% for owned in owned_cards %}
+          <tr data-name="{{ owned.card.name|lower }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
+            <td>{% if owned.card.image %}<a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>{% else %}{{ owned.card.name }}{% endif %}</td>
+            <td>{{ owned.card.get_card_type_display }}</td>
+            <td>{{ owned.card.get_side_display }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <button class="btn btn-outline-light btn-sm remove-copy-btn" data-url="{% url 'remove_copy' owned.card.id 'bb' %}">-</button>
+                <span class="copy-count-bb mx-1">{{ owned.copies_bb }}</span>
+                <button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' owned.card.id 'bb' %}">+</button>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <button class="btn btn-outline-light btn-sm remove-copy-btn" data-url="{% url 'remove_copy' owned.card.id 'wb' %}">-</button>
+                <span class="copy-count-wb mx-1">{{ owned.copies_wb }}</span>
+                <button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' owned.card.id 'wb' %}">+</button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-secondary">No cards owned in this set.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Missing Tabs -->
+<div id="missing-section" style="display:none;">
+  <ul class="nav nav-tabs mb-3" id="missingTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#missing-tab-all" type="button" role="tab">All</button>
+    </li>
+    {% for set_name in missing_sets %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#missing-tab-{{ forloop.counter }}" type="button" role="tab">{{ set_name }}</button>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="d-flex gap-2 my-3">
+    <input type="text" id="cardSearch-missing" class="form-control bg-dark text-light border-secondary" placeholder="Search by name...">
+    <select id="typeFilter-missing" class="form-select bg-dark text-light border-secondary" style="max-width: 180px;">
+      <option value="">All Types</option>
+      <option value="admirals_order">Admiral's Order</option>
+      <option value="character">Character</option>
+      <option value="creature">Creature</option>
+      <option value="device">Device</option>
+      <option value="effect">Effect</option>
+      <option value="epic_event">Epic Event</option>
+      <option value="interrupt">Interrupt</option>
+      <option value="jedi_test">Jedi Test</option>
+      <option value="location">Location</option>
+      <option value="objective">Objective</option>
+      <option value="starship">Starship</option>
+      <option value="vehicle">Vehicle</option>
+      <option value="weapon">Weapon</option>
+    </select>
+    <select id="sideFilter-missing" class="form-select bg-dark text-light border-secondary" style="max-width: 150px;">
+      <option value="">All Sides</option>
+      <option value="Light Side">Light Side</option>
+      <option value="Dark Side">Dark Side</option>
+    </select>
+  </div>
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="missing-tab-all" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th><th style="width:120px;">BB</th><th style="width:120px;">WB</th></tr></thead>
+        <tbody>
+          {% for set_name, cards in missing_sets.items %}
+            {% for card in cards %}
+            <tr data-name="{{ card.name|lower }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
+              <td>{% if card.image %}<a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>{% else %}{{ card.name }}{% endif %}</td>
+              <td>{{ set_name }}</td>
+              <td>{{ card.get_card_type_display }}</td>
+              <td>{{ card.get_side_display }}</td>
+              <td><button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' card.id 'bb' %}"><span class="copy-count-bb">0</span> +</button></td>
+              <td><button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' card.id 'wb' %}"><span class="copy-count-wb">0</span> +</button></td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for set_name, cards in missing_sets.items %}
+    <div class="tab-pane fade" id="missing-tab-{{ forloop.counter }}" role="tabpanel">
+      <table class="table table-dark table-hover">
+        <thead><tr><th>Name</th><th>Type</th><th>Side</th><th style="width:120px;">BB</th><th style="width:120px;">WB</th></tr></thead>
+        <tbody class="set-cards-body">
+          {% for card in cards %}
+          <tr data-name="{{ card.name|lower }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
+            <td>{% if card.image %}<a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>{% else %}{{ card.name }}{% endif %}</td>
+            <td>{{ card.get_card_type_display }}</td>
+            <td>{{ card.get_side_display }}</td>
+            <td><button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' card.id 'bb' %}"><span class="copy-count-bb">0</span> +</button></td>
+            <td><button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' card.id 'wb' %}"><span class="copy-count-wb">0</span> +</button></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-secondary">No missing cards in this set.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Card Image Modal -->
+<div class="modal fade" id="cardModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-transparent border-0 shadow-none">
+      <div class="modal-body p-0 text-center">
+        <img id="cardModalImg" src="" alt="" class="img-fluid rounded" style="max-height: 80vh; cursor: pointer;" data-bs-dismiss="modal">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function getActiveFilters() {
+    const isMissing = document.getElementById('missing-section').style.display !== 'none';
+    return {
+      search: document.getElementById(isMissing ? 'cardSearch-missing' : 'cardSearch'),
+      type: document.getElementById(isMissing ? 'typeFilter-missing' : 'typeFilter'),
+      side: document.getElementById(isMissing ? 'sideFilter-missing' : 'sideFilter'),
+    };
+  }
+  const cardModal = new bootstrap.Modal(document.getElementById('cardModal'));
+  const cardModalImg = document.getElementById('cardModalImg');
+
+  function showMode(mode) {
+    document.getElementById('owned-section').style.display = mode === 'owned' ? '' : 'none';
+    document.getElementById('missing-section').style.display = mode === 'missing' ? '' : 'none';
+    document.getElementById('btn-owned').className = mode === 'owned' ? 'btn btn-light btn-sm active' : 'btn btn-outline-light btn-sm';
+    document.getElementById('btn-missing').className = mode === 'missing' ? 'btn btn-light btn-sm active' : 'btn btn-outline-light btn-sm';
+    applyFilters();
+  }
+
+
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.card-name-link');
+    if (!link) return;
+    e.preventDefault();
+    cardModalImg.src = link.dataset.img;
+    cardModalImg.alt = link.dataset.cardName;
+    cardModal.show();
+  });
+
+  function getActiveBody() {
+    const visibleSection = document.getElementById('owned-section').style.display !== 'none'
+      ? document.getElementById('owned-section')
+      : document.getElementById('missing-section');
+    const activePane = visibleSection.querySelector('.tab-pane.active');
+    return activePane ? activePane.querySelector('tbody') : null;
+  }
+
+  function applyFilters() {
+    const { search, type: typeEl, side: sideEl } = getActiveFilters();
+    const name = search.value.toLowerCase();
+    const type = typeEl.value.toLowerCase();
+    const side = sideEl.value;
+    const tbody = getActiveBody();
+    if (!tbody) return;
+
+    tbody.querySelectorAll('tr[data-name]').forEach(row => {
+      const matchName = row.dataset.name.includes(name);
+      const matchType = !type || row.dataset.type === type;
+      const matchSide = !side || row.dataset.side === side;
+      row.style.display = matchName && matchType && matchSide ? '' : 'none';
+    });
+  }
+
+  ['cardSearch', 'typeFilter', 'sideFilter', 'cardSearch-missing', 'typeFilter-missing', 'sideFilter-missing'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', applyFilters);
+  });
+
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+    btn.addEventListener('shown.bs.tab', applyFilters);
+  });
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.add-copy-btn, .remove-copy-btn');
+    if (!btn) return;
+    const isBB = btn.dataset.url.includes('/bb/');
+    fetch(btn.dataset.url, {
+      method: 'POST',
+      headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    })
+    .then(r => r.json())
+    .then(data => {
+      const countEl = btn.querySelector(isBB ? '.copy-count-bb' : '.copy-count-wb')
+        || btn.closest('td')?.querySelector(isBB ? '.copy-count-bb' : '.copy-count-wb');
+      if (countEl) countEl.textContent = isBB ? data.copies_bb : data.copies_wb;
+    });
+  });
+
+  // Activate set tab from ?set= query param
+  const params = new URLSearchParams(window.location.search);
+  const targetSet = params.get('set');
+  if (targetSet) {
+    const btn = [...document.querySelectorAll('#ownedTabs [data-bs-toggle="tab"]')]
+      .find(b => b.textContent.trim() === targetSet);
+    if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+  }
+</script>
+{% endblock %}

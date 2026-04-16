@@ -1,2 +1,40 @@
 {% extends 'base.html' %}
 
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-baseline gap-3 mb-4">
+  <h1 class="mb-0">Your Collection</h1>
+  <span class="text-secondary">{{ total_owned }} / {{ total_cards }} cards owned</span>
+</div>
+
+<div class="row g-3">
+  {% for set in sets %}
+    {% if forloop.counter0|divisibleby:4 and not forloop.first %}
+  <div class="w-100"></div>
+    {% endif %}
+  <div class="col-md-3">
+    <a href="{% url 'all_owned' %}?set={{ set.name|urlencode }}" class="card bg-dark text-light border-secondary h-100 text-decoration-none">
+      <div class="card-body">
+        <h6 class="card-title mb-2">{{ set.name }}</h6>
+        <div class="d-flex justify-content-between small mb-1">
+          <span>{{ set.owned }} / {{ set.total }}</span>
+          <span class="text-secondary">{% if set.total > 0 %}{{ set.pct }}%{% else %}—{% endif %}</span>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-light" role="progressbar" data-pct="{{ set.pct }}"></div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.progress-bar[data-pct]').forEach(bar => {
+    bar.style.width = bar.dataset.pct + '%';
+  });
+</script>
+{% endblock %}
