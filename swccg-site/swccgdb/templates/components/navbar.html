@@ -38,9 +38,9 @@
       <ul class="nav nav-pills">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <form method="post" action="{% url 'logout' %}" class="d-inline">
+            <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
-              <button type="submit" class="nav-link btn btn-link p-0">Logout</button>
+              <button type="submit" class="nav-link border-0 bg-transparent">Logout</button>
             </form>
           </li>
         {% else %}
