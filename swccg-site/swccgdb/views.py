@@ -11,6 +11,8 @@ from .models import Set, Card, OwnedCard
 
 # Create your views here.
 def index(request):
+    if request.user.is_authenticated:
+        return redirect('home')
     return render(request, 'swccgdb/index.html')
 
 def all_cards(request):
