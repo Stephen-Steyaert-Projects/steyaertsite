@@ -52,10 +52,12 @@ class CardForm(forms.ModelForm):
         cleaned_data = super().clean()
         name = cleaned_data.get('name')
         card_set = cleaned_data.get('card_set')
+        side = cleaned_data.get('side')
         if name and card_set:
             normalized = name.lstrip('•').strip()
             if Card.objects.filter(
-                card_set=card_set
+                card_set=card_set,
+                side=side
             ).exclude(
                 pk=self.instance.pk if self.instance.pk else None
             ).filter(
