@@ -45,7 +45,7 @@ class SetForm(forms.ModelForm):
 class CardForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
+        for name, field in self.fields.items():
             field.required = name != 'image'
 
     class Meta:
