@@ -59,6 +59,7 @@
           <th>Set</th>
           <th>Type</th>
           <th>Side</th>
+          {% if user.is_staff %}<th></th>{% endif %}
         </tr>
       </thead>
       <tbody id="all-cards-body">
@@ -75,6 +76,7 @@
             <td>{{ set.name }}</td>
             <td>{{ card.get_card_type_display }}</td>
             <td>{{ card.get_side_display }}</td>
+            {% if user.is_staff %}<td><a href="{% url 'edit_card' card.id %}" class="btn btn-outline-light btn-sm">Edit</a></td>{% endif %}
           </tr>
           {% endfor %}
         {% endfor %}
@@ -91,6 +93,7 @@
           <th>Name</th>
           <th>Type</th>
           <th>Side</th>
+          {% if user.is_staff %}<th></th>{% endif %}
         </tr>
       </thead>
       <tbody class="set-cards-body">
@@ -105,9 +108,10 @@
           </td>
           <td>{{ card.get_card_type_display }}</td>
           <td>{{ card.get_side_display }}</td>
+          {% if user.is_staff %}<td><a href="{% url 'edit_card' card.id %}" class="btn btn-outline-light btn-sm">Edit</a></td>{% endif %}
         </tr>
         {% empty %}
-        <tr><td colspan="3" class="text-secondary">No cards yet.</td></tr>
+        <tr><td colspan="{% if user.is_staff %}4{% else %}3{% endif %}" class="text-secondary">No cards yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

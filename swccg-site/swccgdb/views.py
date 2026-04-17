@@ -187,6 +187,20 @@ def remove_copy(request, card_id: int, border: str):
 
 
 @staff_member_required
+def edit_card(request, card_id: int):
+    card = get_object_or_404(Card, id=card_id)
+    if request.method == 'POST':
+        form = CardForm(request.POST, request.FILES, instance=card)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'"{card.name}" updated successfully.')
+            return redirect('edit_card', card_id=card.id)
+    else:
+        form = CardForm(instance=card)
+    return render(request, 'swccgdb/edit-card.html', {'form': form, 'card': card})
+
+
+@staff_member_required
 def add_card(request):
     if request.method == 'POST':
         form = CardForm(request.POST, request.FILES)
