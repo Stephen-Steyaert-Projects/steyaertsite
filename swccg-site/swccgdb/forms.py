@@ -20,6 +20,12 @@ class SetForm(forms.ModelForm):
         })
     )
 
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        if Set.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError(f'A set named "{name}" already exists.')
+        return name
+
     class Meta:
         model = Set
         fields = ['name', 'released', 'image']

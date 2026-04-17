@@ -6,7 +6,7 @@
   }
   @media (min-width: 992px) {
     #auth-nav-item { min-width: 90px; }
-    #login {text-align: center;}
+    .login {text-align: center;}
   }
 </style>
 <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
@@ -51,10 +51,10 @@
           {% if user.is_authenticated %}
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
-              <button type="submit" class="nav-link border-0 bg-transparent w-100 text-center">Logout</button>
+              <button type="submit" class="nav-link border-0 bg-transparent w-100">Logout</button>
             </form>
           {% else %}
-            <a id="login" class="nav-link d-block {% if current_url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
+            <a class="login nav-link d-block {% if current_url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
           {% endif %}
         </li>
       </ul>
