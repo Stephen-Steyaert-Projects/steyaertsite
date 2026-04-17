@@ -21,7 +21,7 @@ class Card(models.Model):
         ALIEN_CHARACTER = 'alien_character', 'Alien'
         REBEL_CHARACTER = 'rebel_character', 'Rebel'
         DROID_CHARACTER = 'droid_character', 'Droid'
-        IMPERIAL_CHARACTER = 'imperial_character', 'IMPERIAL'
+        IMPERIAL_CHARACTER = 'imperial_character', 'Imperial'
         CREATURE = 'creature', 'Creature'
         DEVICE = 'device', 'Device'
         EFFECT = 'effect', 'Effect'
