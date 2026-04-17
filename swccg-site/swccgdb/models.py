@@ -18,12 +18,16 @@ class Card(models.Model):
 
     class CardType(models.TextChoices):
         ADMIRALS_ORDER = 'admirals_order', "Admiral's Order"
-        CHARACTER = 'character', 'Character'
+        ALIEN_CHARACTER = 'alien_character', 'Alien'
+        REBEL_CHARACTER = 'rebel_character', 'Rebel'
+        DROID_CHARACTER = 'droid_character', 'Droid'
+        IMPERIAL_CHARACTER = 'imperial_character', 'IMPERIAL'
         CREATURE = 'creature', 'Creature'
         DEVICE = 'device', 'Device'
         EFFECT = 'effect', 'Effect'
         EPIC_EVENT = 'epic_event', 'Epic Event'
-        INTERRUPT = 'interrupt', 'Interrupt'
+        USED_INTERRUPT = 'used_interrupt', 'Used Interrupt'
+        LOST_INTERRUPT = 'lost_interrupt', 'Lost Interrupt'
         JEDI_TEST = 'jedi_test', 'Jedi Test'
         LOCATION = 'location', 'Location'
         OBJECTIVE = 'objective', 'Objective'
