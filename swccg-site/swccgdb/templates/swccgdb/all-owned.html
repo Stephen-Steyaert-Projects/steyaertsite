@@ -22,45 +22,53 @@
 </div>
 
 <!-- Shared filters -->
-<div class="d-flex flex-wrap gap-2 mb-3">
-  <input type="text" id="cardSearch" class="form-control bg-dark text-light border-secondary" placeholder="Search by name..." style="min-width: 150px;">
-  <div class="form-floating" style="min-width: 200px;">
-    <select id="setFilter" class="form-select bg-dark text-light border-secondary">
-      <option value="">All Sets</option>
-      {% for set_name in owned_sets %}
-      <option value="{{ set_name }}">{{ set_name }}</option>
-      {% endfor %}
-    </select>
-    <label for="setFilter">Set</label>
+<div class="row g-2 mb-3">
+  <div class="col-12 col-md">
+    <input type="text" id="cardSearch" class="form-control bg-dark text-light border-secondary h-100" placeholder="Search by name...">
   </div>
-  <div class="form-floating" style="min-width: 180px;">
-    <select id="typeFilter" class="form-select bg-dark text-light border-secondary">
-      <option value="">All Types</option>
-      <option value="admirals_order">Admiral's Order</option>
-      <option value="alien_character">Alien</option>
-      <option value="rebel_character">Rebel</option>
-      <option value="droid_character">Droid</option>
-      <option value="imperial_character">Imperial</option>
-      <option value="device">Device</option>
-      <option value="effect">Effect</option>
-      <option value="epic_event">Epic Event</option>
-      <option value="interrupt">Interrupt</option>
-      <option value="jedi_test">Jedi Test</option>
-      <option value="location">Location</option>
-      <option value="objective">Objective</option>
-      <option value="starship">Starship</option>
-      <option value="vehicle">Vehicle</option>
-      <option value="weapon">Weapon</option>
-    </select>
-    <label for="typeFilter">Type</label>
+  <div class="col-12 col-md-auto">
+    <div class="form-floating">
+      <select id="setFilter" class="form-select bg-dark text-light border-secondary" style="min-width: 200px;">
+        <option value="">All Sets</option>
+        {% for set_name in owned_sets %}
+        <option value="{{ set_name }}">{{ set_name }}</option>
+        {% endfor %}
+      </select>
+      <label for="setFilter">Set</label>
+    </div>
   </div>
-  <div class="form-floating" style="min-width: 150px;">
-    <select id="sideFilter" class="form-select bg-dark text-light border-secondary">
-      <option value="">All Sides</option>
-      <option value="Light Side">Light Side</option>
-      <option value="Dark Side">Dark Side</option>
-    </select>
-    <label for="sideFilter">Side</label>
+  <div class="col col-md-auto">
+    <div class="form-floating">
+      <select id="typeFilter" class="form-select bg-dark text-light border-secondary" style="min-width: 160px;">
+        <option value="">All Types</option>
+        <option value="admirals_order">Admiral's Order</option>
+        <option value="alien_character">Alien</option>
+        <option value="rebel_character">Rebel</option>
+        <option value="droid_character">Droid</option>
+        <option value="imperial_character">Imperial</option>
+        <option value="device">Device</option>
+        <option value="effect">Effect</option>
+        <option value="epic_event">Epic Event</option>
+        <option value="interrupt">Interrupt</option>
+        <option value="jedi_test">Jedi Test</option>
+        <option value="location">Location</option>
+        <option value="objective">Objective</option>
+        <option value="starship">Starship</option>
+        <option value="vehicle">Vehicle</option>
+        <option value="weapon">Weapon</option>
+      </select>
+      <label for="typeFilter">Type</label>
+    </div>
+  </div>
+  <div class="col col-md-auto">
+    <div class="form-floating">
+      <select id="sideFilter" class="form-select bg-dark text-light border-secondary" style="min-width: 130px;">
+        <option value="">All Sides</option>
+        <option value="Light Side">Light Side</option>
+        <option value="Dark Side">Dark Side</option>
+      </select>
+      <label for="sideFilter">Side</label>
+    </div>
   </div>
 </div>
 
