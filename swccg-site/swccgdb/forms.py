@@ -48,19 +48,21 @@ class CardForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.required = True if name not in ('image', 'rarity') else False
 
-    def clean_name(self):
-        name = self.cleaned_data['name']
-        card_set = self.cleaned_data.get('card_set')
-        normalized = name.lstrip('•').strip()
-        if card_set and Card.objects.filter(
-            card_set=card_set
-        ).exclude(
-            pk=self.instance.pk if self.instance.pk else None
-        ).filter(
-            name__iregex=rf'^•*{normalized}$'
-        ).exists():
-            raise forms.ValidationError(f'A card named "{name}" already exists in this set.')
-        return name
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get('name')
+        card_set = cleaned_data.get('card_set')
+        if name and card_set:
+            normalized = name.lstrip('•').strip()
+            if Card.objects.filter(
+                card_set=card_set
+            ).exclude(
+                pk=self.instance.pk if self.instance.pk else None
+            ).filter(
+                name__iregex=rf'^•*{normalized}$'
+            ).exists():
+                raise forms.ValidationError(f'A card named "{name}" already exists in this set.')
+        return cleaned_data
 
     class Meta:
         model = Card
