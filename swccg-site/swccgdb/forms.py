@@ -22,6 +22,13 @@ class SetForm(forms.ModelForm):
 
     def clean_name(self):
         name = self.cleaned_data['name']
+        lowercase_words = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor',
+                           'at', 'by', 'in', 'of', 'on', 'to', 'up', 'with', 'from'}
+        words = name.strip().split()
+        name = ' '.join(
+            word.capitalize() if i == 0 or word.lower() not in lowercase_words else word.lower()
+            for i, word in enumerate(words)
+        )
         if Set.objects.filter(name__iexact=name).exists():
             raise forms.ValidationError(f'A set named "{name}" already exists.')
         return name
@@ -39,7 +46,7 @@ class CardForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
-            field.required = True
+            field.required = name != 'image'
 
     class Meta:
         model = Card
