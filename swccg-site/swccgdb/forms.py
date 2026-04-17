@@ -46,7 +46,7 @@ class CardForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
-            field.required = name != 'image'
+            field.required = True if name not in ('image', 'rarity') else False
 
     class Meta:
         model = Card
