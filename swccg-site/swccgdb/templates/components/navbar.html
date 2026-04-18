@@ -26,8 +26,12 @@
           <a class="nav-link {% if current_url_name == 'all_cards' %}active{% endif %}" href="{% url 'all_cards' %}">All Cards</a>
         </li>
         {% if user.is_authenticated %}
-        <li class="nav-item">
-          <a class="nav-link {% if current_url_name == 'all_owned' %}active{% endif %}" href="{% url 'all_owned' %}">My Collection</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if current_url_name == 'owned_cards' or current_url_name == 'missing_cards' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">My Collection</a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item {% if current_url_name == 'owned_cards' %}active{% endif %}" href="{% url 'owned_cards' %}">Owned</a></li>
+            <li><a class="dropdown-item {% if current_url_name == 'missing_cards' %}active{% endif %}" href="{% url 'missing_cards' %}">Missing</a></li>
+          </ul>
         </li>
         {% endif %}
         {% if user.is_staff %}

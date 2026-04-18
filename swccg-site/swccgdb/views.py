@@ -132,7 +132,7 @@ def export_collection_by_set(request):
 @login_required
 def import_collection_by_set(request):
     if request.method != 'POST' or 'file' not in request.FILES:
-        return redirect('all_owned')
+        return redirect('owned_cards')
 
     wb = openpyxl.load_workbook(request.FILES['file'])
     updated = 0
@@ -164,7 +164,7 @@ def import_collection_by_set(request):
                 continue
 
     messages.success(request, f'Imported {updated} cards successfully.')
-    return redirect('all_owned')
+    return redirect('owned_cards')
 
 
 @login_required
@@ -196,7 +196,7 @@ def set_copies(request, card_id: int):
         owned.save()
     except (ValueError, TypeError):
         pass
-    return redirect('all_owned')
+    return redirect('owned_cards')
 
 
 @staff_member_required
@@ -239,12 +239,12 @@ def add_set(request):
     return render(request, 'swccgdb/add-set.html', {'form': form})
 
 
-@login_required
-def all_owned(request):
-    owned_ids = OwnedCard.objects.filter(user=request.user).filter(
-        Q(copies_bb__gt=0) | Q(copies_wb__gt=0)
-    ).values_list('card_id', flat=True)
+def _all_sets():
+    return Set.objects.order_by('released', 'name').values_list('name', flat=True)
 
+
+@login_required
+def owned_cards(request):
     owned = (
         OwnedCard.objects
         .filter(user=request.user)
@@ -253,6 +253,17 @@ def all_owned(request):
         .annotate(side_order=_side_order('card__'), type_order=_card_type_order('card__'))
         .order_by('card__card_set__name', 'side_order', 'type_order', 'card__name')
     )
+    return render(request, 'swccgdb/owned.html', {
+        'owned': owned,
+        'all_sets': _all_sets(),
+    })
+
+
+@login_required
+def missing_cards(request):
+    owned_ids = OwnedCard.objects.filter(user=request.user).filter(
+        Q(copies_bb__gt=0) | Q(copies_wb__gt=0)
+    ).values_list('card_id', flat=True)
 
     missing = (
         Card.objects
@@ -261,20 +272,8 @@ def all_owned(request):
         .annotate(side_order=_side_order(), type_order=_card_type_order())
         .order_by('card_set__name', 'side_order', 'type_order', 'name')
     )
-
-    owned_sets = {}
-    for oc in owned:
-        owned_sets.setdefault(oc.card.card_set.name, []).append(oc)
-
-    missing_sets = {}
-    for card in missing:
-        missing_sets.setdefault(card.card_set.name, []).append(card)
-
-    all_sets = Set.objects.order_by('released', 'name').values_list('name', flat=True)
-
-    return render(request, 'swccgdb/all-owned.html', {
-        'owned_sets': owned_sets,
-        'missing_sets': missing_sets,
-        'all_sets': all_sets,
+    return render(request, 'swccgdb/missing.html', {
+        'missing': missing,
+        'all_sets': _all_sets(),
     })
 
