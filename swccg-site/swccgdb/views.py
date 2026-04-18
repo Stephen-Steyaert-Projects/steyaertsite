@@ -184,6 +184,21 @@ def remove_copy(request, card_id: int, border: str):
         return JsonResponse({'copies_bb': 0, 'copies_wb': 0, 'copies': 0})
 
 
+@login_required
+def set_copies(request, card_id: int):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    card = get_object_or_404(Card, id=card_id)
+    owned, _ = OwnedCard.objects.get_or_create(user=request.user, card=card)
+    try:
+        owned.copies_bb = max(0, int(request.POST.get('copies_bb', 0)))
+        owned.copies_wb = max(0, int(request.POST.get('copies_wb', 0)))
+        owned.save()
+    except (ValueError, TypeError):
+        pass
+    return redirect('all_owned')
+
+
 @staff_member_required
 def edit_card(request, card_id: int):
     card = get_object_or_404(Card, id=card_id)
@@ -255,8 +270,11 @@ def all_owned(request):
     for card in missing:
         missing_sets.setdefault(card.card_set.name, []).append(card)
 
+    all_sets = Set.objects.order_by('released', 'name').values_list('name', flat=True)
+
     return render(request, 'swccgdb/all-owned.html', {
         'owned_sets': owned_sets,
         'missing_sets': missing_sets,
+        'all_sets': all_sets,
     })
 

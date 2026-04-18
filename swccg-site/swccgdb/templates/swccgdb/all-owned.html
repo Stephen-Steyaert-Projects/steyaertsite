@@ -30,7 +30,7 @@
     <div class="form-floating">
       <select id="setFilter" class="form-select bg-dark text-light border-secondary" style="min-width: 200px;">
         <option value="">All Sets</option>
-        {% for set_name in owned_sets %}
+        {% for set_name in all_sets %}
         <option value="{{ set_name }}">{{ set_name }}</option>
         {% endfor %}
       </select>
@@ -85,19 +85,15 @@
           <td>{{ set_name }}</td>
           <td>{{ owned.card.get_card_type_display }}</td>
           <td>{{ owned.card.get_side_display }}</td>
-          <td>
-            <div class="d-flex align-items-center gap-1">
-              <button class="btn btn-outline-light btn-sm remove-copy-btn" data-url="{% url 'remove_copy' owned.card.id 'bb' %}">-</button>
-              <span class="copy-count-bb mx-1">{{ owned.copies_bb }}</span>
-              <button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' owned.card.id 'bb' %}">+</button>
-            </div>
-          </td>
-          <td>
-            <div class="d-flex align-items-center gap-1">
-              <button class="btn btn-outline-light btn-sm remove-copy-btn" data-url="{% url 'remove_copy' owned.card.id 'wb' %}">-</button>
-              <span class="copy-count-wb mx-1">{{ owned.copies_wb }}</span>
-              <button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' owned.card.id 'wb' %}">+</button>
-            </div>
+          <td colspan="2">
+            <form method="post" action="{% url 'set_copies' owned.card.id %}" class="d-flex align-items-center gap-2">
+              {% csrf_token %}
+              <label class="text-secondary small mb-0">BB</label>
+              <input type="number" name="copies_bb" value="{{ owned.copies_bb }}" min="0" class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 60px;">
+              <label class="text-secondary small mb-0">WB</label>
+              <input type="number" name="copies_wb" value="{{ owned.copies_wb }}" min="0" class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 60px;">
+              <button type="submit" class="btn btn-outline-light btn-sm">Save</button>
+            </form>
           </td>
         </tr>
         {% endfor %}
@@ -122,8 +118,16 @@
           <td>{{ set_name }}</td>
           <td>{{ card.get_card_type_display }}</td>
           <td>{{ card.get_side_display }}</td>
-          <td><button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' card.id 'bb' %}"><span class="copy-count-bb">0</span> +</button></td>
-          <td><button class="btn btn-outline-light btn-sm add-copy-btn" data-url="{% url 'add_copy' card.id 'wb' %}"><span class="copy-count-wb">0</span> +</button></td>
+          <td colspan="2">
+            <form method="post" action="{% url 'set_copies' card.id %}" class="d-flex align-items-center gap-2">
+              {% csrf_token %}
+              <label class="text-secondary small mb-0">BB</label>
+              <input type="number" name="copies_bb" value="0" min="0" class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 60px;">
+              <label class="text-secondary small mb-0">WB</label>
+              <input type="number" name="copies_wb" value="0" min="0" class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 60px;">
+              <button type="submit" class="btn btn-outline-light btn-sm">Save</button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       {% empty %}
