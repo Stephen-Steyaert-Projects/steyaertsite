@@ -185,18 +185,25 @@ def remove_copy(request, card_id: int, border: str):
 
 
 @login_required
-def set_copies(request, card_id: int):
+def save_collection(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    card = get_object_or_404(Card, id=card_id)
-    owned, _ = OwnedCard.objects.get_or_create(user=request.user, card=card)
-    try:
-        owned.copies_bb = max(0, int(request.POST.get('copies_bb', 0)))
-        owned.copies_wb = max(0, int(request.POST.get('copies_wb', 0)))
-        owned.save()
-    except (ValueError, TypeError):
-        pass
-    return redirect('owned_cards')
+        return redirect('owned_cards')
+    for key, value in request.POST.items():
+        if key.startswith('bb_'):
+            card_id = int(key[3:])
+            wb_key = f'wb_{card_id}'
+            try:
+                bb = max(0, int(value or 0))
+                wb = max(0, int(request.POST.get(wb_key, 0) or 0))
+                card = Card.objects.get(id=card_id)
+                owned, _ = OwnedCard.objects.get_or_create(user=request.user, card=card)
+                owned.copies_bb = bb
+                owned.copies_wb = wb
+                owned.save()
+            except (Card.DoesNotExist, ValueError, TypeError):
+                continue
+    next_url = request.POST.get('next', 'owned_cards')
+    return redirect(next_url)
 
 
 @staff_member_required

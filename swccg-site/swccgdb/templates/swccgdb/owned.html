@@ -67,33 +67,30 @@
   </div>
 </div>
 
-<div class="table-responsive">
-  <table class="table table-dark table-hover">
-    <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th><th style="width:120px;">BB</th><th style="width:120px;">WB</th></tr></thead>
-    <tbody id="owned-body">
-      {% for owned in owned %}
-      <tr data-name="{{ owned.card.name|lower }}" data-set="{{ owned.card.card_set.name }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
-        <td>{% if owned.card.image %}<a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>{% else %}{{ owned.card.name }}{% endif %}</td>
-        <td>{{ owned.card.card_set.name }}</td>
-        <td>{{ owned.card.get_card_type_display }}</td>
-        <td>{{ owned.card.get_side_display }}</td>
-        <td colspan="2">
-          <form method="post" action="{% url 'set_copies' owned.card.id %}" class="d-flex align-items-center gap-2">
-            {% csrf_token %}
-            <label class="text-secondary small mb-0">BB</label>
-            <input type="number" name="copies_bb" value="{{ owned.copies_bb }}" min="0" class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 60px;">
-            <label class="text-secondary small mb-0">WB</label>
-            <input type="number" name="copies_wb" value="{{ owned.copies_wb }}" min="0" class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 60px;">
-            <button type="submit" class="btn btn-outline-light btn-sm">Save</button>
-          </form>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6" class="text-secondary">No cards owned yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<form method="post" action="{% url 'save_collection' %}">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="owned_cards">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover">
+      <thead class="sticky-top"><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th><th style="width:80px;">BB</th><th style="width:80px;">WB</th></tr></thead>
+      <tbody id="owned-body">
+        {% for owned in owned %}
+        <tr data-name="{{ owned.card.name|lower }}" data-set="{{ owned.card.card_set.name }}" data-type="{{ owned.card.card_type }}" data-side="{{ owned.card.get_side_display }}">
+          <td>{% if owned.card.image %}<a href="#" class="text-light card-name-link" data-img="{{ owned.card.image.url }}" data-card-name="{{ owned.card.name }}">{{ owned.card.name }}</a>{% else %}{{ owned.card.name }}{% endif %}</td>
+          <td>{{ owned.card.card_set.name }}</td>
+          <td>{{ owned.card.get_card_type_display }}</td>
+          <td>{{ owned.card.get_side_display }}</td>
+          <td><input type="number" name="bb_{{ owned.card.id }}" value="{{ owned.copies_bb }}" min="0" class="form-control form-control-sm bg-dark text-light border-secondary"></td>
+          <td><input type="number" name="wb_{{ owned.card.id }}" value="{{ owned.copies_wb }}" min="0" class="form-control form-control-sm bg-dark text-light border-secondary"></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-secondary">No cards owned yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="btn btn-light">Save</button>
+</form>
 
 <!-- Card Image Modal -->
 <div class="modal fade" id="cardModal" tabindex="-1" aria-hidden="true">
