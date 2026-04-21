@@ -1,7 +1,7 @@
 # Example: Automatic deployment workflow
 # Rename to deploy.yml to enable automatic deployment
 
-name: Deploy to Production
+name: Deploy to Production - steyaertsite
 
 on:
   workflow_dispatch:
