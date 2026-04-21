@@ -6,7 +6,7 @@ name: Deploy to Production - swccg
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: [Build and Push SWCCG Site to GHCR"]
+    workflows: ["Build and Push SWCCG Site to GHCR"]
     types:
       - completed
     branches:
