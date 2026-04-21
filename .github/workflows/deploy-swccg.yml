@@ -1,0 +1,28 @@
+# Example: Automatic deployment workflow
+# Rename to deploy.yml to enable automatic deployment
+
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Build and Push SWCCG Site to GHCR"]
+    types:
+      - completed
+    branches:
+      - main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy to production
+        run: |
+          cd /srv/steyaertsite
+          make deploy-swccgdb

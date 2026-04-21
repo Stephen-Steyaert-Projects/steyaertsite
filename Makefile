@@ -1,4 +1,4 @@
-.PHONY: help deploy up down restart logs clean
+.PHONY: help deploy deploy-moviesdb deploy-swccg up down restart logs clean
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -6,14 +6,19 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-deploy: ## Pull latest image and deploy with docker compose
+deploy: ## Pull latest images and deploy all services
 	docker compose pull && \
 	docker compose up -d && \
 	docker image prune -af
 
-up: ## Start services (pulls website image if changed)
+deploy-moviesdb: ## Pull and deploy only the movies site
 	docker compose pull website && \
-	docker compose up -d && \
+	docker compose up -d website && \
+	docker image prune -af
+
+deploy-swccg: ## Pull and deploy only the SWCCG site
+	docker compose pull swccg && \
+	docker compose up -d swccg && \
 	docker image prune -af
 
 down: ## Stop and remove services

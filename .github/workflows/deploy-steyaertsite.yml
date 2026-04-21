@@ -6,8 +6,7 @@ name: Deploy to Production
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["Build and Push Steyaert Site to GHCR", 
-                "Build and Push SWCCG Site to GHCR"]
+    workflows: ["Build and Push Steyaert Site to GHCR"]
     types:
       - completed
     branches:
@@ -26,4 +25,4 @@ jobs:
       - name: Deploy to production
         run: |
           cd /srv/steyaertsite
-          make deploy
+          make deploy-moviesdb

@@ -210,7 +210,7 @@ def save_collection(request):
 def edit_card(request, card_id: int):
     card = get_object_or_404(Card, id=card_id)
     if request.method == 'POST':
-        form = CardForm(request.POST, request.FILES, instance=card)
+        form = CardForm(request.POST, instance=card)
         if form.is_valid():
             form.save()
             messages.success(request, f'"{card.name}" updated successfully.')
@@ -223,7 +223,7 @@ def edit_card(request, card_id: int):
 @staff_member_required
 def add_card(request):
     if request.method == 'POST':
-        form = CardForm(request.POST, request.FILES)
+        form = CardForm(request.POST)
         if form.is_valid():
             card = form.save()
             messages.success(request, f'"{card.name}" added successfully.')

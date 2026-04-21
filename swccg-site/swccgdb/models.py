@@ -53,7 +53,6 @@ class Card(models.Model):
     card_type = models.CharField(max_length=20, choices=CardType.choices)
     side = models.CharField(max_length=1, choices=Side.choices)
     rarity = models.CharField(max_length=2, choices=Rarity.choices, blank=True)
-    image = models.ImageField(upload_to='cards/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.name} ({self.card_set})"

@@ -70,13 +70,7 @@
     {% for set in sets %}
       {% for card in set.cards.all %}
       <tr data-name="{{ card.name|lower }}" data-set="{{ set.name }}" data-type="{{ card.card_type }}" data-side="{{ card.get_side_display }}">
-        <td>
-          {% if card.image %}
-          <a href="#" class="text-light card-name-link" data-img="{{ card.image.url }}" data-card-name="{{ card.name }}">{{ card.name }}</a>
-          {% else %}
-          {{ card.name }}
-          {% endif %}
-        </td>
+        <td>{{ card.name }}</td>
         <td>{{ set.name }}</td>
         <td>{{ card.get_card_type_display }}</td>
         <td>{{ card.get_side_display }}</td>
@@ -89,16 +83,6 @@
 
 </div>
 
-<!-- Card Image Modal -->
-<div class="modal fade" id="cardModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-transparent border-0 shadow-none">
-      <div class="modal-body p-0 text-center">
-        <img id="cardModalImg" src="" alt="" class="img-fluid rounded" style="max-height: 80vh; cursor: pointer;" data-bs-dismiss="modal">
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -107,17 +91,6 @@
   const setFilter = document.getElementById('setFilter');
   const typeFilter = document.getElementById('typeFilter');
   const sideFilter = document.getElementById('sideFilter');
-  const cardModal = new bootstrap.Modal(document.getElementById('cardModal'));
-  const cardModalImg = document.getElementById('cardModalImg');
-
-  document.addEventListener('click', e => {
-    const link = e.target.closest('.card-name-link');
-    if (!link) return;
-    e.preventDefault();
-    cardModalImg.src = link.dataset.img;
-    cardModalImg.alt = link.dataset.cardName;
-    cardModal.show();
-  });
 
   function applyFilters() {
     const name = searchInput.value.toLowerCase();

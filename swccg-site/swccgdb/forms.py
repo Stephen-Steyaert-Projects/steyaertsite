@@ -46,7 +46,7 @@ class CardForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
-            field.required = True if name not in ('image', 'rarity') else False
+            field.required = name != 'rarity'
 
     def clean(self):
         cleaned_data = super().clean()
@@ -68,12 +68,11 @@ class CardForm(forms.ModelForm):
 
     class Meta:
         model = Card
-        fields = ['name', 'card_set', 'card_type', 'side', 'rarity', 'image']
+        fields = ['name', 'card_set', 'card_type', 'side', 'rarity']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-light border-secondary', 'placeholder': 'Name'}),
             'card_set': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Set'}),
             'card_type': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Type'}),
             'side': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Side'}),
             'rarity': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Rarity'}),
-            'image': forms.ClearableFileInput(attrs={'class': 'form-control bg-dark text-light border-secondary', 'accept': 'image/png,image/jpeg,image/webp,image/gif'}),
         }
