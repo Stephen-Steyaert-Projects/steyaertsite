@@ -30,8 +30,8 @@ def all_cards(request):
 @login_required
 def home(request):
     sets = Set.objects.annotate(
-        total=Count('cards'),
-        owned=Count('cards', filter=Q(
+        total=Count('cards', distinct=True),
+        owned=Count('cards', distinct=True, filter=Q(
             cards__owned_by__user=request.user,
         ) & (Q(cards__owned_by__copies_bb__gt=0) | Q(cards__owned_by__copies_wb__gt=0))),
     ).order_by('released', 'name')
