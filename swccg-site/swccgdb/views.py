@@ -6,7 +6,7 @@ from PIL import Image
 from django.core.files.base import ContentFile
 import openpyxl
 
-def _convert_set_image(instance):
+def _convert_set_image(instance, old_image=None):
     original_path = instance.image.path
     img = Image.open(original_path).convert('RGB')
     output = BytesIO()
@@ -14,6 +14,8 @@ def _convert_set_image(instance):
     output.seek(0)
     filename = instance.name.lower().replace(' ', '_') + '.webp'
     instance.image.delete(save=False)
+    if old_image:
+        old_image.delete(save=False)
     instance.image.save(filename, ContentFile(output.read()), save=True)
 
 from django.contrib import messages
@@ -280,11 +282,12 @@ def add_set(request):
 def edit_set(request, set_id: int):
     card_set = get_object_or_404(Set, id=set_id)
     if request.method == 'POST':
+        old_image = card_set.image if card_set.image else None
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
             instance = form.save()
             if 'image' in request.FILES and instance.image:
-                _convert_set_image(instance)
+                _convert_set_image(instance, old_image=old_image)
             cache.delete('all_cards_data')
             messages.success(request, f'"{instance.name}" updated successfully.')
             return redirect('edit_set', set_id=instance.id)
