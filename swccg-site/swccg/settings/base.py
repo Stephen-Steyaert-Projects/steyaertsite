@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "register",
     "swccgdb",
+    "webpfield",
 ]
 
 MIDDLEWARE = [
@@ -92,6 +93,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+WEBP_FIELD_SETTINGS = {
+    "saving_kwargs": {
+        "quality": 85,
+        "lossless": False,
+    },
+    "delete_original": True,
+}
 
 LOGIN_URL = "/auth/login/"
 LOGOUT_REDIRECT_URL = "/auth/login/"
