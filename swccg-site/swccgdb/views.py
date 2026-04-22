@@ -263,11 +263,12 @@ def sets_list(request):
 @staff_member_required
 def add_set(request):
     if request.method == 'POST':
+        image_data = BytesIO(request.FILES['image'].read()) if 'image' in request.FILES else None
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
             name = form.cleaned_data['name']
-            if form.cleaned_data.get('image'):
-                form.instance.image = _convert_to_webp(form.cleaned_data['image'], name)
+            if image_data:
+                form.instance.image = _convert_to_webp(image_data, name)
             s = form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{s.name}" added successfully.')
@@ -281,13 +282,14 @@ def add_set(request):
 def edit_set(request, set_id: int):
     card_set = get_object_or_404(Set, id=set_id)
     if request.method == 'POST':
+        image_data = BytesIO(request.FILES['image'].read()) if 'image' in request.FILES else None
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
-            if form.cleaned_data.get('image'):
+            if image_data:
                 if card_set.image:
                     card_set.image.delete(save=False)
                 name = form.cleaned_data['name']
-                form.instance.image = _convert_to_webp(form.cleaned_data['image'], name)
+                form.instance.image = _convert_to_webp(image_data, name)
             form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{card_set.name}" updated successfully.')
