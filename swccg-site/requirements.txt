@@ -3,10 +3,6 @@
 asgiref==3.8.1
     # via django
 django==5.2.3
-    # via
-    #   django-webpfield
-    #   swccg-site
-django-webpfield==0.1.0
     # via swccg-site
 et-xmlfile==2.0.0
     # via openpyxl
@@ -16,9 +12,7 @@ openpyxl==3.1.5
 packaging==25.0
     # via gunicorn
 pillow==12.2.0
-    # via
-    #   django-webpfield
-    #   swccg-site
+    # via swccg-site
 psycopg2-binary==2.9.10
 sqlparse==0.5.3
     # via django
