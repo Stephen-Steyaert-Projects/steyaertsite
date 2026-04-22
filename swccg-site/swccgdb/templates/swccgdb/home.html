@@ -18,14 +18,16 @@
       {% if set.image %}
       <img src="{{ set.image.url }}" alt="{{ set.name }}" class="card-img-top" style="height: 120px; object-fit: fill;">
       {% endif %}
-      <div class="card-body">
+      <div class="card-body d-flex flex-column">
         <h6 class="card-title mb-2">{{ set.name }}</h6>
-        <div class="d-flex justify-content-between small mb-1">
-          <span>{{ set.owned }} / {{ set.total }}</span>
-          <span class="text-secondary">{% if set.total > 0 %}{{ set.pct }}%{% else %}—{% endif %}</span>
-        </div>
-        <div class="progress" style="height: 6px;">
-          <div class="progress-bar bg-light" role="progressbar" data-pct="{{ set.pct }}"></div>
+        <div class="mt-auto">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>{{ set.owned }} / {{ set.total }}</span>
+            <span class="text-secondary">{% if set.total > 0 %}{{ set.pct }}%{% else %}—{% endif %}</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-light" role="progressbar" data-pct="{{ set.pct }}"></div>
+          </div>
         </div>
       </div>
     </a>
