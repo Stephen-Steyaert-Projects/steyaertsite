@@ -1,8 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.cache import cache
 from django.http import JsonResponse, HttpResponse
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from io import BytesIO
+from PIL import Image
+import sys
 import openpyxl
+
+
+def _convert_to_webp(image_file, name: str):
+    img = Image.open(image_file).convert('RGB')
+    output = BytesIO()
+    img.save(output, format='WEBP', quality=85)
+    output.seek(0)
+    filename = name.lower().replace(' ', '_') + '.webp'
+    return InMemoryUploadedFile(output, 'ImageField', filename, 'image/webp', sys.getsizeof(output), None)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -252,6 +264,9 @@ def add_set(request):
     if request.method == 'POST':
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
+            name = form.cleaned_data['name']
+            if 'image' in request.FILES:
+                form.instance.image = _convert_to_webp(request.FILES['image'], name)
             s = form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{s.name}" added successfully.')
@@ -267,6 +282,11 @@ def edit_set(request, set_id: int):
     if request.method == 'POST':
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
+            if 'image' in request.FILES:
+                if card_set.image:
+                    card_set.image.delete(save=False)
+                name = form.cleaned_data['name']
+                form.instance.image = _convert_to_webp(request.FILES['image'], name)
             form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{card_set.name}" updated successfully.')
