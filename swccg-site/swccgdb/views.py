@@ -6,6 +6,13 @@ from PIL import Image
 from django.core.files.base import ContentFile
 import openpyxl
 
+def _clear_set_caches():
+    from django.contrib.auth.models import User
+    user_ids = User.objects.values_list('id', flat=True)
+    cache.delete_many([f'home_{uid}' for uid in user_ids])
+    cache.delete('all_cards_data')
+
+
 def _convert_set_image(instance, old_image=None):
     original_path = instance.image.path
     img = Image.open(original_path).convert('RGB')
@@ -270,7 +277,7 @@ def add_set(request):
             instance = form.save()
             if instance.image:
                 _convert_set_image(instance)
-            cache.delete('all_cards_data')
+            _clear_set_caches()
             messages.success(request, f'"{instance.name}" added successfully.')
             return redirect('add_set')
     else:
@@ -290,7 +297,7 @@ def edit_set(request, set_id: int):
             instance = form.save()
             if 'image' in request.FILES and instance.image:
                 _convert_set_image(instance, old_image=old_image)
-            cache.delete('all_cards_data')
+            _clear_set_caches()
             messages.success(request, f'"{instance.name}" updated successfully.')
             return redirect('edit_set', set_id=instance.id)
     else:
