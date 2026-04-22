@@ -29,7 +29,7 @@ class SetForm(forms.ModelForm):
             word.capitalize() if i == 0 or word.lower() not in lowercase_words else word.lower()
             for i, word in enumerate(words)
         )
-        if Set.objects.filter(name__iexact=name).exists():
+        if Set.objects.filter(name__iexact=name).exclude(pk=self.instance.pk if self.instance.pk else None).exists():
             raise forms.ValidationError(f'A set named "{name}" already exists.')
         return name
 
