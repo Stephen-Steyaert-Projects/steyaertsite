@@ -16,7 +16,7 @@
   <div class="col-md-3">
     <a href="{% url 'owned_cards' %}?set={{ set.name|urlencode }}" class="card bg-dark text-light border-secondary text-decoration-none">
       {% if set.image %}
-      <img src="{{ set.image.url }}" alt="{{ set.name }}" class="card-img-top" style="height: 120px; object-fit: contain; background: #111;">
+      <img src="{{ set.image.url }}" alt="{{ set.name }}" class="card-img-top" style="height: 120px; object-fit: fill;">
       {% endif %}
       <div class="card-body">
         <h6 class="card-title mb-2">{{ set.name }}</h6>
