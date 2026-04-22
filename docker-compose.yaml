@@ -11,6 +11,8 @@ services:
     environment:
       - VIRTUAL_HOST=swccg.steyaert.xyz
       - VIRTUAL_PORT=8000
+    volumes:
+      - /srv/swccg_media:/app/media
     restart: always
     init: true
     networks:
