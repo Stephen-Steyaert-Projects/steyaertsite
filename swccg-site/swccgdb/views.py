@@ -10,7 +10,6 @@ def _clear_set_caches():
     from django.contrib.auth.models import User
     user_ids = User.objects.values_list('id', flat=True)
     cache.delete_many([f'home_{uid}' for uid in user_ids])
-    cache.delete('all_cards_data')
 
 
 def _convert_set_image(instance, old_image=None):
