@@ -266,8 +266,8 @@ def add_set(request):
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
             name = form.cleaned_data['name']
-            if 'image' in request.FILES:
-                form.instance.image = _convert_to_webp(request.FILES['image'], name)
+            if form.cleaned_data.get('image'):
+                form.instance.image = _convert_to_webp(form.cleaned_data['image'], name)
             s = form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{s.name}" added successfully.')
@@ -283,11 +283,11 @@ def edit_set(request, set_id: int):
     if request.method == 'POST':
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
-            if 'image' in request.FILES:
+            if form.cleaned_data.get('image'):
                 if card_set.image:
                     card_set.image.delete(save=False)
                 name = form.cleaned_data['name']
-                form.instance.image = _convert_to_webp(request.FILES['image'], name)
+                form.instance.image = _convert_to_webp(form.cleaned_data['image'], name)
             form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{card_set.name}" updated successfully.')
