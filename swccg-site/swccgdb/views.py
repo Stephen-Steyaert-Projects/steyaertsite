@@ -261,7 +261,10 @@ def sets_list(request):
 @staff_member_required
 def add_set(request):
     if request.method == 'POST':
-        raw_image = request.FILES['image'].read() if 'image' in request.FILES else None
+        raw_image = None
+        if 'image' in request.FILES:
+            raw_image = request.FILES['image'].read()
+            request.FILES['image'].seek(0)
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
             instance = form.save(commit=False)
