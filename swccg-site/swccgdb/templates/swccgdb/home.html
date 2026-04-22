@@ -14,7 +14,7 @@
   <div class="w-100"></div>
     {% endif %}
   <div class="col-md-3">
-    <a href="{% url 'owned_cards' %}?set={{ set.name|urlencode }}" class="card bg-dark text-light border-secondary text-decoration-none">
+    <a href="{% url 'owned_cards' %}?set={{ set.name|urlencode }}" class="card bg-dark text-light border-secondary {% if set.image %}h-100{% endif %} text-decoration-none">
       {% if set.image %}
       <img src="{{ set.image.url }}" alt="{{ set.name }}" class="card-img-top" style="height: 120px; object-fit: fill;">
       {% endif %}
