@@ -69,6 +69,9 @@ CACHES = {
 
 # WhiteNoise static file storage with compression and caching
 STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
