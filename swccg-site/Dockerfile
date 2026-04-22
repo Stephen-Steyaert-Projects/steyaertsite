@@ -16,7 +16,8 @@ RUN apk add --no-cache \
     icu-libs \
     icu-data-full \
     openssl-dev \
-    python3-dev
+    python3-dev \
+    libwebp-dev
 
 # Copy requirements
 COPY requirements.txt .
@@ -40,7 +41,8 @@ RUN apk add --no-cache \
     icu-libs \
     icu-data-full \
     openssl \
-    netcat-openbsd
+    netcat-openbsd \
+    libwebp
 
 # Add non-root user
 RUN adduser -D appuser
