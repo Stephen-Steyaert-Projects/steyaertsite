@@ -25,10 +25,14 @@ class SetForm(forms.ModelForm):
         lowercase_words = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor',
                            'at', 'by', 'in', 'of', 'on', 'to', 'up', 'with', 'from'}
         words = name.strip().split()
-        name = ' '.join(
-            word.capitalize() if i == 0 or word.lower() not in lowercase_words else word.lower()
-            for i, word in enumerate(words)
-        )
+        def _fmt(word, i):
+            if word.isupper() and len(word) > 1:
+                return word  # preserve roman numerals like II, III, IV
+            if i == 0 or word.lower() not in lowercase_words:
+                return word.capitalize()
+            return word.lower()
+
+        name = ' '.join(_fmt(word, i) for i, word in enumerate(words))
         if Set.objects.filter(name__iexact=name).exclude(pk=self.instance.pk if self.instance.pk else None).exists():
             raise forms.ValidationError(f'A set named "{name}" already exists.')
         return name
