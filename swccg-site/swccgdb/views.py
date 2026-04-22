@@ -6,14 +6,16 @@ from PIL import Image
 from django.core.files.base import ContentFile
 import openpyxl
 
-
-def _to_webp(raw_bytes: bytes, name: str) -> ContentFile:
-    img = Image.open(BytesIO(raw_bytes)).convert('RGB')
+def _convert_set_image(instance):
+    original_path = instance.image.path
+    img = Image.open(original_path).convert('RGB')
     output = BytesIO()
     img.save(output, format='WEBP', quality=85)
     output.seek(0)
-    filename = name.lower().replace(' ', '_') + '.webp'
-    return ContentFile(output.read(), name=filename)
+    filename = instance.name.lower().replace(' ', '_') + '.webp'
+    instance.image.delete(save=False)
+    instance.image.save(filename, ContentFile(output.read()), save=True)
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -261,20 +263,11 @@ def sets_list(request):
 @staff_member_required
 def add_set(request):
     if request.method == 'POST':
-        raw_image = None
-        if 'image' in request.FILES:
-            raw_image = request.FILES['image'].read()
-            request.FILES['image'].seek(0)
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
-            instance = form.save(commit=False)
-            if raw_image:
-                instance.image.save(
-                    f'{instance.name.lower().replace(" ", "_")}.webp',
-                    _to_webp(raw_image, instance.name),
-                    save=False,
-                )
-            instance.save()
+            instance = form.save()
+            if instance.image:
+                _convert_set_image(instance)
             cache.delete('all_cards_data')
             messages.success(request, f'"{instance.name}" added successfully.')
             return redirect('add_set')
@@ -287,19 +280,11 @@ def add_set(request):
 def edit_set(request, set_id: int):
     card_set = get_object_or_404(Set, id=set_id)
     if request.method == 'POST':
-        raw_image = request.FILES['image'].read() if 'image' in request.FILES else None
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
-            instance = form.save(commit=False)
-            if raw_image:
-                if card_set.image:
-                    card_set.image.delete(save=False)
-                instance.image.save(
-                    f'{instance.name.lower().replace(" ", "_")}.webp',
-                    _to_webp(raw_image, instance.name),
-                    save=False,
-                )
-            instance.save()
+            instance = form.save()
+            if 'image' in request.FILES and instance.image:
+                _convert_set_image(instance)
             cache.delete('all_cards_data')
             messages.success(request, f'"{instance.name}" updated successfully.')
             return redirect('edit_set', set_id=instance.id)
