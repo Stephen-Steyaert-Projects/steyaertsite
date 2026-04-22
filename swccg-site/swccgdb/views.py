@@ -1,21 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.cache import cache
 from django.http import JsonResponse, HttpResponse
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from io import BytesIO
-from PIL import Image
-import sys
 import openpyxl
-
-
-def _convert_to_webp(image_file, name: str):
-    image_file.seek(0)
-    img = Image.open(image_file).convert('RGB')
-    output = BytesIO()
-    img.save(output, format='WEBP', quality=85)
-    output.seek(0)
-    filename = name.lower().replace(' ', '_') + '.webp'
-    return InMemoryUploadedFile(output, 'ImageField', filename, 'image/webp', sys.getsizeof(output), None)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -263,12 +250,8 @@ def sets_list(request):
 @staff_member_required
 def add_set(request):
     if request.method == 'POST':
-        image_data = BytesIO(request.FILES['image'].read()) if 'image' in request.FILES else None
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
-            name = form.cleaned_data['name']
-            if image_data:
-                form.instance.image = _convert_to_webp(image_data, name)
             s = form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{s.name}" added successfully.')
@@ -282,14 +265,10 @@ def add_set(request):
 def edit_set(request, set_id: int):
     card_set = get_object_or_404(Set, id=set_id)
     if request.method == 'POST':
-        image_data = BytesIO(request.FILES['image'].read()) if 'image' in request.FILES else None
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
-            if image_data:
-                if card_set.image:
-                    card_set.image.delete(save=False)
-                name = form.cleaned_data['name']
-                form.instance.image = _convert_to_webp(image_data, name)
+            if 'image' in request.FILES and card_set.image:
+                card_set.image.delete(save=False)
             form.save()
             cache.delete('all_cards_data')
             messages.success(request, f'"{card_set.name}" updated successfully.')

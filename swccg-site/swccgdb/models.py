@@ -1,11 +1,27 @@
+import os
+from io import BytesIO
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
+from PIL import Image
 
 
 class Set(models.Model):
     name = models.CharField(max_length=100)
     released = models.DateField(null=True, blank=True)
     image = models.ImageField(upload_to='sets/', blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.image and not self.image.name.endswith('.webp'):
+            img = Image.open(self.image)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            output = BytesIO()
+            img.save(output, format='WEBP', quality=85)
+            output.seek(0)
+            filename = self.name.lower().replace(' ', '_') + '.webp'
+            self.image = ContentFile(output.read(), name=filename)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
