@@ -39,7 +39,7 @@
           <a class="nav-link dropdown-toggle {% if current_url_name == 'add_card' or current_url_name == 'add_set' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">Admin</a>
           <ul class="dropdown-menu dropdown-menu-dark">
             <li><a class="dropdown-item {% if current_url_name == 'add_card' %}active{% endif %}" href="{% url 'add_card' %}">Add Card</a></li>
-            <li><a class="dropdown-item {% if current_url_name == 'add_set' %}active{% endif %}" href="{% url 'add_set' %}">Add Set</a></li>
+            <li><a class="dropdown-item {% if current_url_name == 'add_set' or current_url_name == 'sets_list' or current_url_name == 'edit_set' %}active{% endif %}" href="{% url 'sets_list' %}">Sets</a></li>
           </ul>
         </li>
         {% endif %}

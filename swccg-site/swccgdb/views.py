@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.cache import cache
 from django.http import JsonResponse, HttpResponse
 from io import BytesIO
 import openpyxl
@@ -16,37 +17,39 @@ def index(request):
     return render(request, 'swccgdb/index.html')
 
 def all_cards(request):
-    card_order = Card.objects.annotate(
-        side_order=_side_order(),
-        type_order=_card_type_order(),
-    ).order_by('side_order', 'type_order', 'name')
-
-    sets = Set.objects.prefetch_related(
-        Prefetch('cards', queryset=card_order)
-    ).order_by('name')
+    sets = cache.get('all_cards_data')
+    if sets is None:
+        card_order = Card.objects.annotate(
+            side_order=_side_order(),
+            type_order=_card_type_order(),
+        ).order_by('side_order', 'type_order', 'name')
+        sets = list(Set.objects.prefetch_related(
+            Prefetch('cards', queryset=card_order)
+        ).order_by('name'))
+        cache.set('all_cards_data', sets, 86400)
     return render(request, 'swccgdb/all-cards.html', {'sets': sets})
 
 
 @login_required
 def home(request):
-    sets = Set.objects.annotate(
-        total=Count('cards', distinct=True),
-        owned=Count('cards', distinct=True, filter=Q(
-            cards__owned_by__user=request.user,
-        ) & (Q(cards__owned_by__copies_bb__gt=0) | Q(cards__owned_by__copies_wb__gt=0))),
-    ).order_by('released', 'name')
-
-    for s in sets:
-        s.pct = round(s.owned / s.total * 100) if s.total else 0
-
-    total_cards = sum(s.total for s in sets)
-    total_owned = sum(s.owned for s in sets)
-
-    return render(request, 'swccgdb/home.html', {
-        'sets': sets,
-        'total_cards': total_cards,
-        'total_owned': total_owned,
-    })
+    cache_key = f'home_{request.user.id}'
+    data = cache.get(cache_key)
+    if data is None:
+        sets = Set.objects.annotate(
+            total=Count('cards', distinct=True),
+            owned=Count('cards', distinct=True, filter=Q(
+                cards__owned_by__user=request.user,
+            ) & (Q(cards__owned_by__copies_bb__gt=0) | Q(cards__owned_by__copies_wb__gt=0))),
+        ).order_by('released', 'name')
+        for s in sets:
+            s.pct = round(s.owned / s.total * 100) if s.total else 0
+        data = {
+            'sets': list(sets),
+            'total_cards': sum(s.total for s in sets),
+            'total_owned': sum(s.owned for s in sets),
+        }
+        cache.set(cache_key, data, 86400)
+    return render(request, 'swccgdb/home.html', data)
 
 def _card_type_order(prefix=''):
     f = f'{prefix}card_type' if prefix else 'card_type'
@@ -202,6 +205,9 @@ def save_collection(request):
                 owned.save()
             except (Card.DoesNotExist, ValueError, TypeError):
                 continue
+    cache.delete(f'home_{request.user.id}')
+    cache.delete(f'owned_{request.user.id}')
+    cache.delete(f'missing_{request.user.id}')
     next_url = request.POST.get('next', 'owned_cards')
     return redirect(next_url)
 
@@ -213,6 +219,7 @@ def edit_card(request, card_id: int):
         form = CardForm(request.POST, instance=card)
         if form.is_valid():
             form.save()
+            cache.delete('all_cards_data')
             messages.success(request, f'"{card.name}" updated successfully.')
             return redirect('edit_card', card_id=card.id)
     else:
@@ -226,6 +233,7 @@ def add_card(request):
         form = CardForm(request.POST)
         if form.is_valid():
             card = form.save()
+            cache.delete('all_cards_data')
             messages.success(request, f'"{card.name}" added successfully.')
             return redirect('add_card')
     else:
@@ -234,16 +242,38 @@ def add_card(request):
 
 
 @staff_member_required
+def sets_list(request):
+    sets = Set.objects.order_by('released', 'name')
+    return render(request, 'swccgdb/sets-list.html', {'sets': sets})
+
+
+@staff_member_required
 def add_set(request):
     if request.method == 'POST':
         form = SetForm(request.POST, request.FILES)
         if form.is_valid():
             s = form.save()
+            cache.delete('all_cards_data')
             messages.success(request, f'"{s.name}" added successfully.')
             return redirect('add_set')
     else:
         form = SetForm()
     return render(request, 'swccgdb/add-set.html', {'form': form})
+
+
+@staff_member_required
+def edit_set(request, set_id: int):
+    card_set = get_object_or_404(Set, id=set_id)
+    if request.method == 'POST':
+        form = SetForm(request.POST, request.FILES, instance=card_set)
+        if form.is_valid():
+            form.save()
+            cache.delete('all_cards_data')
+            messages.success(request, f'"{card_set.name}" updated successfully.')
+            return redirect('edit_set', set_id=card_set.id)
+    else:
+        form = SetForm(instance=card_set)
+    return render(request, 'swccgdb/edit-set.html', {'form': form, 'card_set': card_set})
 
 
 def _all_sets():
@@ -252,35 +282,38 @@ def _all_sets():
 
 @login_required
 def owned_cards(request):
-    owned = (
-        OwnedCard.objects
-        .filter(user=request.user)
-        .filter(Q(copies_bb__gt=0) | Q(copies_wb__gt=0))
-        .select_related('card', 'card__card_set')
-        .annotate(side_order=_side_order('card__'), type_order=_card_type_order('card__'))
-        .order_by('card__card_set__name', 'side_order', 'type_order', 'card__name')
-    )
-    return render(request, 'swccgdb/owned.html', {
-        'owned': owned,
-        'all_sets': _all_sets(),
-    })
+    cache_key = f'owned_{request.user.id}'
+    data = cache.get(cache_key)
+    if data is None:
+        owned = list(
+            OwnedCard.objects
+            .filter(user=request.user)
+            .filter(Q(copies_bb__gt=0) | Q(copies_wb__gt=0))
+            .select_related('card', 'card__card_set')
+            .annotate(side_order=_side_order('card__'), type_order=_card_type_order('card__'))
+            .order_by('card__card_set__name', 'side_order', 'type_order', 'card__name')
+        )
+        data = {'owned': owned, 'all_sets': list(_all_sets())}
+        cache.set(cache_key, data, 86400)
+    return render(request, 'swccgdb/owned.html', data)
 
 
 @login_required
 def missing_cards(request):
-    owned_ids = OwnedCard.objects.filter(user=request.user).filter(
-        Q(copies_bb__gt=0) | Q(copies_wb__gt=0)
-    ).values_list('card_id', flat=True)
-
-    missing = (
-        Card.objects
-        .exclude(id__in=owned_ids)
-        .select_related('card_set')
-        .annotate(side_order=_side_order(), type_order=_card_type_order())
-        .order_by('card_set__name', 'side_order', 'type_order', 'name')
-    )
-    return render(request, 'swccgdb/missing.html', {
-        'missing': missing,
-        'all_sets': _all_sets(),
-    })
+    cache_key = f'missing_{request.user.id}'
+    data = cache.get(cache_key)
+    if data is None:
+        owned_ids = OwnedCard.objects.filter(user=request.user).filter(
+            Q(copies_bb__gt=0) | Q(copies_wb__gt=0)
+        ).values_list('card_id', flat=True)
+        missing = list(
+            Card.objects
+            .exclude(id__in=owned_ids)
+            .select_related('card_set')
+            .annotate(side_order=_side_order(), type_order=_card_type_order())
+            .order_by('card_set__name', 'side_order', 'type_order', 'name')
+        )
+        data = {'missing': missing, 'all_sets': list(_all_sets())}
+        cache.set(cache_key, data, 86400)
+    return render(request, 'swccgdb/missing.html', data)
 
