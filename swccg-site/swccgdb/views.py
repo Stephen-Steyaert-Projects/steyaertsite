@@ -285,6 +285,8 @@ def edit_set(request, set_id: int):
         old_image = card_set.image if card_set.image else None
         form = SetForm(request.POST, request.FILES, instance=card_set)
         if form.is_valid():
+            if form.cleaned_data.get('image') is False and old_image:
+                old_image.delete(save=False)
             instance = form.save()
             if 'image' in request.FILES and instance.image:
                 _convert_set_image(instance, old_image=old_image)
