@@ -9,6 +9,7 @@ import openpyxl
 
 
 def _convert_to_webp(image_file, name: str):
+    image_file.seek(0)
     img = Image.open(image_file).convert('RGB')
     output = BytesIO()
     img.save(output, format='WEBP', quality=85)
