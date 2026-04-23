@@ -229,6 +229,7 @@ def save_collection(request):
     cache.delete(f'home_{request.user.id}')
     cache.delete(f'owned_{request.user.id}')
     cache.delete(f'missing_{request.user.id}')
+    cache.delete(f'edit_collection_{request.user.id}')
     next_url = request.POST.get('next', 'owned_cards')
     return redirect(next_url)
 
@@ -302,6 +303,35 @@ def edit_set(request, set_id: int):
     else:
         form = SetForm(instance=card_set)
     return render(request, 'swccgdb/edit-set.html', {'form': form, 'card_set': card_set})
+
+
+@login_required
+def edit_collection(request):
+    cache_key = f'edit_collection_{request.user.id}'
+    data = cache.get(cache_key)
+    if data is None:
+        owned_map = {
+            oc.card_id: oc
+            for oc in OwnedCard.objects.filter(user=request.user)
+        }
+        cards = (
+            Card.objects
+            .select_related('card_set')
+            .annotate(side_order=_side_order(), type_order=_card_type_order())
+            .order_by('card_set__name', 'side_order', 'type_order', 'name')
+        )
+        rows = []
+        for card in cards:
+            oc = owned_map.get(card.id)
+            rows.append({
+                'card': card,
+                'bb': oc.copies_bb if oc else 0,
+                'wb': oc.copies_wb if oc else 0,
+            })
+        all_sets = list(_all_sets())
+        data = {'rows': rows, 'all_sets': all_sets}
+        cache.set(cache_key, data, 86400)
+    return render(request, 'swccgdb/edit-collection.html', data)
 
 
 def _all_sets():

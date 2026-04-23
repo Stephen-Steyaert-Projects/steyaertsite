@@ -7,6 +7,7 @@ urlpatterns = [
     path("cards/", views.all_cards, name="all_cards"),
     path("owned/", views.owned_cards, name="owned_cards"),
     path("missing/", views.missing_cards, name="missing_cards"),
+    path("collection/edit/", views.edit_collection, name="edit_collection"),
     path("cards/add/", views.add_card, name="add_card"),
     path("cards/<int:card_id>/edit/", views.edit_card, name="edit_card"),
     path("sets/", views.sets_list, name="sets_list"),
