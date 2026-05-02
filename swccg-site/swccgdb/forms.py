@@ -1,3 +1,4 @@
+from typing import cast
 from django import forms
 from .models import Card, Set
 
@@ -51,6 +52,7 @@ class CardForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
             field.required = name not in ('rarity', 'secondary_card_type')
+        cast(forms.ModelChoiceField, self.fields['card_set']).queryset = Set.objects.order_by('name')
 
     def clean(self):
         cleaned_data = super().clean()
