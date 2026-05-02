@@ -50,7 +50,7 @@ class CardForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
-            field.required = name != 'rarity'
+            field.required = name not in ('rarity', 'secondary_card_type')
 
     def clean(self):
         cleaned_data = super().clean()
@@ -77,6 +77,7 @@ class CardForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-light border-secondary', 'placeholder': 'Name'}),
             'card_set': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Set'}),
             'card_type': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Type'}),
+            'secondary_card_type': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Type'}),
             'side': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Side'}),
             'rarity': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Rarity'}),
         }

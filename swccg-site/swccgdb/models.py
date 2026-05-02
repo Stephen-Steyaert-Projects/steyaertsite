@@ -20,6 +20,7 @@ class Card(models.Model):
         ADMIRALS_ORDER = 'admirals_order', "Admiral's Order"
         ALIEN_CHARACTER = 'alien_character', 'Alien'
         REBEL_CHARACTER = 'rebel_character', 'Rebel'
+        HIGH_REPUBLIC_CHARACTER = 'high_republic_character', 'High Republic'
         DROID_CHARACTER = 'droid_character', 'Droid'
         IMPERIAL_CHARACTER = 'imperial_character', 'Imperial'
         DEVICE = 'device', 'Device'
@@ -50,7 +51,8 @@ class Card(models.Model):
 
     name = models.CharField(max_length=200)
     card_set = models.ForeignKey(Set, on_delete=models.PROTECT, related_name='cards')
-    card_type = models.CharField(max_length=20, choices=CardType.choices)
+    card_type = models.CharField(max_length=25, choices=CardType.choices)
+    secondary_card_type = models.CharField(max_length=25, choices=CardType.choices, blank=True, null=True)
     side = models.CharField(max_length=1, choices=Side.choices)
     rarity = models.CharField(max_length=2, choices=Rarity.choices, blank=True)
 
