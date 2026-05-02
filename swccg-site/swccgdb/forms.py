@@ -72,7 +72,7 @@ class CardForm(forms.ModelForm):
 
     class Meta:
         model = Card
-        fields = ['name', 'card_set', 'card_type', 'side', 'rarity']
+        fields = ['name', 'card_set', 'card_type', 'secondary_card_type', 'side', 'rarity']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-light border-secondary', 'placeholder': 'Name'}),
             'card_set': forms.Select(attrs={'class': 'form-select bg-dark text-light border-secondary', 'placeholder': 'Set'}),
