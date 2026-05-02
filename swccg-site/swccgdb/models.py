@@ -17,17 +17,19 @@ class Card(models.Model):
         DARK = 'D', 'Dark Side'
 
     class CardType(models.TextChoices):
-        ADMIRALS_ORDER = 'admirals_order', "Admiral's Order"
-        ALIEN_CHARACTER = 'alien_character', 'Alien'
-        REBEL_CHARACTER = 'rebel_character', 'Rebel'
         HIGH_REPUBLIC_CHARACTER = 'high_republic_character', 'High Republic'
+        JEDI_MASTER_CHARACTER = 'jedi_master_character', 'Jedi Master'
+        JEDI_TEST = 'jedi_test', 'Jedi Test'
+        REBEL_CHARACTER = 'rebel_character', 'Rebel'
+        ALIEN_CHARACTER = 'alien_character', 'Alien'
         DROID_CHARACTER = 'droid_character', 'Droid'
         IMPERIAL_CHARACTER = 'imperial_character', 'Imperial'
+        ADMIRALS_ORDER = 'admirals_order', "Admiral's Order"
+        DEFENSIVE_SHIELD = 'defensive_shield', 'Defensive Shield'
         DEVICE = 'device', 'Device'
         EFFECT = 'effect', 'Effect'
         EPIC_EVENT = 'epic_event', 'Epic Event'
         INTERRUPT = 'interrupt', 'Interrupt'
-        JEDI_TEST = 'jedi_test', 'Jedi Test'
         LOCATION = 'location', 'Location'
         OBJECTIVE = 'objective', 'Objective'
         STARSHIP = 'starship', 'Starship'
