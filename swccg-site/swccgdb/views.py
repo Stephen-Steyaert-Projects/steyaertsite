@@ -12,6 +12,15 @@ def _clear_set_caches():
     cache.delete_many([f'home_{uid}' for uid in user_ids])
 
 
+def _clear_user_caches():
+    from django.contrib.auth.models import User
+    user_ids: list[int] = list(User.objects.values_list('id', flat=True))
+    keys: list[str] = []
+    for uid in user_ids:
+        keys += [f'home_{uid}', f'owned_{uid}', f'missing_{uid}', f'edit_collection_{uid}']
+    cache.delete_many(keys)
+
+
 def _convert_set_image(instance, old_image=None):
     original_path = instance.image.path
     img = Image.open(original_path).convert('RGB')
@@ -256,6 +265,7 @@ def add_card(request):
         if form.is_valid():
             card = form.save()
             cache.delete('all_cards_data')
+            _clear_user_caches()
             messages.success(request, f'"{card.name}" added successfully.')
             return redirect('add_card')
     else:
