@@ -529,6 +529,11 @@ def deck_add_card(request, deck_id):
     if owned_card.copies < 1:
         return JsonResponse({'error': f'You own no copies of {owned_card.card.name}'}, status=400)
 
+    existing_side = deck.deck_cards.values_list('owned_card__card__side', flat=True).first()
+    if existing_side and owned_card.card.side != existing_side:
+        side_label = owned_card.card.get_side_display()
+        return JsonResponse({'error': f'This deck is {Card.Side(existing_side).label} only. {owned_card.card.name} is {side_label}.'}, status=400)
+
     current_total = deck.deck_cards.aggregate(t=Sum('quantity'))['t'] or 0
     if current_total >= 60:
         return JsonResponse({'error': 'Deck is already at 60 cards'}, status=400)
