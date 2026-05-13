@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}My Decks{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <h1 class="mb-0">My Decks</h1>
+  <a href="{% url 'deck_new' %}" class="btn btn-light ms-auto">New Deck</a>
+</div>
+
+{% if my_decks %}
+<div class="row g-3 mb-5">
+  {% for deck in my_decks %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card bg-dark border-secondary h-100">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex align-items-start mb-2">
+          <h5 class="card-title mb-0 me-2">{{ deck.name }}</h5>
+          {% if deck.is_public %}
+          <span class="badge bg-success ms-auto">Public</span>
+          {% else %}
+          <span class="badge bg-secondary ms-auto">Private</span>
+          {% endif %}
+        </div>
+        <p class="text-secondary mb-3">{{ deck.card_count|default:0 }}/60 cards</p>
+        <div class="mt-auto d-flex gap-2">
+          <a href="{% url 'deck_detail' deck.id %}" class="btn btn-outline-light btn-sm">View</a>
+          <a href="{% url 'deck_edit' deck.id %}" class="btn btn-outline-light btn-sm">Edit</a>
+          <form method="post" action="{% url 'deck_delete' deck.id %}" class="ms-auto" onsubmit="return confirm('Delete {{ deck.name }}?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-secondary mb-5">No decks yet. <a href="{% url 'deck_new' %}">Create one.</a></p>
+{% endif %}
+
+{% if saved_decks %}
+<h2 class="mb-3">Saved Decks</h2>
+<div class="row g-3">
+  {% for deck in saved_decks %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card bg-dark border-secondary h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">{{ deck.name }}</h5>
+        <p class="text-secondary mb-1">{{ deck.card_count|default:0 }}/60 cards</p>
+        <p class="text-secondary mb-3 small">by {{ deck.user.username }}</p>
+        <div class="mt-auto d-flex gap-2">
+          <a href="{% url 'deck_detail' deck.id %}" class="btn btn-outline-light btn-sm">View</a>
+          <form method="post" action="{% url 'deck_save_toggle' deck.id %}" class="ms-auto">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="deck_list">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Unsave</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

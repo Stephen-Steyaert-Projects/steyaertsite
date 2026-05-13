@@ -37,8 +37,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from .forms import CardForm, SetForm
-from django.db.models import Case, When, Value, IntegerField, Prefetch, Count, Q
-from .models import Set, Card, OwnedCard
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Case, When, Value, IntegerField, Prefetch, Count, Q, Sum
+from .models import Set, Card, OwnedCard, Deck, DeckCard
 
 # Create your views here.
 def index(request):
@@ -384,4 +385,188 @@ def missing_cards(request):
         data = {'missing': missing, 'all_sets': list(_all_sets())}
         cache.set(cache_key, data, 86400)
     return render(request, 'swccgdb/missing.html', data)
+
+
+# --- Deck views ---
+
+@login_required
+def deck_list(request):
+    my_decks = Deck.objects.filter(user=request.user).annotate(
+        card_count=Sum('deck_cards__quantity')
+    ).order_by('name')
+    saved_decks = Deck.objects.filter(saved_by=request.user).annotate(
+        card_count=Sum('deck_cards__quantity')
+    ).order_by('name')
+    return render(request, 'swccgdb/decks/list.html', {
+        'my_decks': my_decks,
+        'saved_decks': saved_decks,
+    })
+
+
+@login_required
+def deck_new(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if name:
+            deck = Deck.objects.create(user=request.user, name=name)
+            return redirect('deck_edit', deck_id=deck.id)
+        messages.error(request, 'A name is required.')
+    return render(request, 'swccgdb/decks/new.html')
+
+
+def deck_detail(request, deck_id):
+    deck = get_object_or_404(Deck, id=deck_id)
+    is_owner = request.user.is_authenticated and deck.user == request.user
+    if not is_owner and not deck.is_public:
+        raise PermissionDenied
+    deck_cards = (
+        deck.deck_cards
+        .select_related('owned_card__card__card_set')
+        .annotate(
+            type_order=_card_type_order('owned_card__card__'),
+            side_order=_side_order('owned_card__card__'),
+        )
+        .order_by('side_order', 'type_order', 'owned_card__card__name')
+    )
+    total = deck_cards.aggregate(t=Sum('quantity'))['t'] or 0
+    is_saved = (
+        request.user.is_authenticated
+        and not is_owner
+        and deck.saved_by.filter(id=request.user.id).exists()
+    )
+    return render(request, 'swccgdb/decks/detail.html', {
+        'deck': deck,
+        'deck_cards': deck_cards,
+        'total': total,
+        'is_owner': is_owner,
+        'is_saved': is_saved,
+    })
+
+
+@login_required
+def deck_edit(request, deck_id):
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if name:
+            deck.name = name
+            deck.save()
+        return redirect('deck_edit', deck_id=deck.id)
+
+    deck_cards = (
+        deck.deck_cards
+        .select_related('owned_card__card__card_set')
+        .annotate(
+            type_order=_card_type_order('owned_card__card__'),
+            side_order=_side_order('owned_card__card__'),
+        )
+        .order_by('side_order', 'type_order', 'owned_card__card__name')
+    )
+    in_deck_ids = set(deck_cards.values_list('owned_card_id', flat=True))
+    owned = (
+        OwnedCard.objects
+        .filter(user=request.user)
+        .filter(Q(copies_bb__gt=0) | Q(copies_wb__gt=0))
+        .select_related('card__card_set')
+        .annotate(
+            type_order=_card_type_order('card__'),
+            side_order=_side_order('card__'),
+        )
+        .order_by('side_order', 'type_order', 'card__name')
+    )
+    total = deck_cards.aggregate(t=Sum('quantity'))['t'] or 0
+    return render(request, 'swccgdb/decks/edit.html', {
+        'deck': deck,
+        'deck_cards': deck_cards,
+        'owned': owned,
+        'in_deck_ids': in_deck_ids,
+        'total': total,
+    })
+
+
+@login_required
+def deck_delete(request, deck_id):
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    if request.method == 'POST':
+        deck.delete()
+    return redirect('deck_list')
+
+
+@login_required
+def deck_toggle_public(request, deck_id):
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    if request.method == 'POST':
+        deck.is_public = not deck.is_public
+        deck.save()
+    return redirect('deck_detail', deck_id=deck_id)
+
+
+@login_required
+def deck_save_toggle(request, deck_id):
+    deck = get_object_or_404(Deck, id=deck_id)
+    if deck.user == request.user:
+        messages.error(request, "You can't save your own deck.")
+        return redirect('deck_detail', deck_id=deck_id)
+    if not deck.is_public:
+        raise PermissionDenied
+    if request.method == 'POST':
+        if deck.saved_by.filter(id=request.user.id).exists():
+            deck.saved_by.remove(request.user)
+        else:
+            deck.saved_by.add(request.user)
+    return redirect(request.POST.get('next', 'deck_list'))
+
+
+@login_required
+def deck_add_card(request, deck_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    owned_card = get_object_or_404(OwnedCard, id=request.POST.get('owned_card_id'), user=request.user)
+
+    if DeckCard.objects.filter(deck=deck, owned_card=owned_card).exists():
+        return JsonResponse({'error': 'Card already in deck'}, status=400)
+    if owned_card.copies < 1:
+        return JsonResponse({'error': f'You own no copies of {owned_card.card.name}'}, status=400)
+
+    current_total = deck.deck_cards.aggregate(t=Sum('quantity'))['t'] or 0
+    if current_total >= 60:
+        return JsonResponse({'error': 'Deck is already at 60 cards'}, status=400)
+
+    DeckCard.objects.create(deck=deck, owned_card=owned_card, quantity=1)
+    return JsonResponse({'success': True, 'total': current_total + 1})
+
+
+@login_required
+def deck_remove_card(request, deck_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    DeckCard.objects.filter(deck=deck, owned_card_id=request.POST.get('owned_card_id')).delete()
+    total = deck.deck_cards.aggregate(t=Sum('quantity'))['t'] or 0
+    return JsonResponse({'success': True, 'total': total})
+
+
+@login_required
+def deck_update_card(request, deck_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid quantity'}, status=400)
+    if quantity < 1:
+        return JsonResponse({'error': 'Quantity must be at least 1'}, status=400)
+
+    deck_card = get_object_or_404(DeckCard, deck=deck, owned_card_id=request.POST.get('owned_card_id'))
+    other_total = deck.deck_cards.exclude(id=deck_card.id).aggregate(t=Sum('quantity'))['t'] or 0
+    if other_total + quantity > 60:
+        return JsonResponse({'error': f'Deck cannot exceed 60 cards'}, status=400)
+    if quantity > deck_card.owned_card.copies:
+        return JsonResponse({'error': f'You only own {deck_card.owned_card.copies} copy/copies'}, status=400)
+
+    deck_card.quantity = quantity
+    deck_card.save()
+    return JsonResponse({'success': True, 'total': other_total + quantity, 'quantity': quantity})
 

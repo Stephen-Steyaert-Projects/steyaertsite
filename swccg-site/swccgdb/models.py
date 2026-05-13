@@ -1,3 +1,6 @@
+import uuid
+
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -77,3 +80,39 @@ class OwnedCard(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.card} BB:{self.copies_bb} WB:{self.copies_wb}"
+
+class Deck(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='decks')
+    name = models.CharField(max_length=200)
+    is_public = models.BooleanField(default=False)
+    cards = models.ManyToManyField(OwnedCard, through='DeckCard', related_name='decks')
+    saved_by = models.ManyToManyField(User, related_name='saved_decks', blank=True)
+
+    def clean(self):
+        total = (
+            self.deck_cards.aggregate(total=models.Sum('quantity'))['total'] or 0
+        )
+        if total > 60:
+            raise ValidationError(f"Deck cannot exceed 60 cards (current: {total}).")
+
+    def __str__(self):
+        return f"{self.name} ({self.user})"
+
+
+class DeckCard(models.Model):
+    deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='deck_cards')
+    owned_card = models.ForeignKey(OwnedCard, on_delete=models.CASCADE, related_name='deck_cards')
+    quantity = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('deck', 'owned_card')
+
+    def clean(self):
+        if self.quantity > self.owned_card.copies:
+            raise ValidationError(
+                f"You only own {self.owned_card.copies} copy/copies of {self.owned_card.card}."
+            )
+
+    def __str__(self):
+        return f"{self.deck} — {self.owned_card.card} x{self.quantity}"

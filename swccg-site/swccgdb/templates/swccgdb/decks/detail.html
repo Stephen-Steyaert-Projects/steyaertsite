@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ deck.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+  <div>
+    <h1 class="mb-0">{{ deck.name }}</h1>
+    <small class="text-secondary">by {{ deck.user.username }}</small>
+  </div>
+  <span class="badge {% if deck.is_public %}bg-success{% else %}bg-secondary{% endif %}">
+    {% if deck.is_public %}Public{% else %}Private{% endif %}
+  </span>
+  <span class="badge bg-secondary">{{ total }}/60</span>
+  <div class="ms-auto d-flex gap-2 flex-wrap">
+    {% if is_owner %}
+    <a href="{% url 'deck_edit' deck.id %}" class="btn btn-outline-light btn-sm">Edit</a>
+    <form method="post" action="{% url 'deck_toggle_public' deck.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-light btn-sm">
+        {% if deck.is_public %}Make Private{% else %}Make Public{% endif %}
+      </button>
+    </form>
+    <form method="post" action="{% url 'deck_delete' deck.id %}" onsubmit="return confirm('Delete {{ deck.name }}?')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'deck_save_toggle' deck.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="deck_detail">
+      <button type="submit" class="btn btn-outline-light btn-sm">
+        {% if is_saved %}Unsave{% else %}Save{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if deck_cards %}
+<div class="table-responsive">
+  <table class="table table-dark table-hover">
+    <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Side</th><th>Qty</th></tr></thead>
+    <tbody>
+      {% for dc in deck_cards %}
+      <tr>
+        <td>{{ dc.owned_card.card.name }}</td>
+        <td>{{ dc.owned_card.card.card_set.name }}</td>
+        <td>{{ dc.owned_card.card.get_card_type_display }}</td>
+        <td>{{ dc.owned_card.card.get_side_display }}</td>
+        <td>{{ dc.quantity }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">No cards in this deck yet.</p>
+{% endif %}
+{% endblock %}
