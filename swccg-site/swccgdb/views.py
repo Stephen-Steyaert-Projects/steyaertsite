@@ -498,7 +498,7 @@ def deck_toggle_public(request, deck_id):
     if request.method == 'POST':
         deck.is_public = not deck.is_public
         deck.save()
-    return redirect('deck_detail', deck_id=deck_id)
+    return redirect('deck_edit', deck_id=deck_id)
 
 
 @login_required

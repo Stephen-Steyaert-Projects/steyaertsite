@@ -11,6 +11,13 @@
   </form>
   <span id="card-count" class="badge bg-secondary fs-6">{{ total }}/60</span>
   <div class="ms-auto d-flex gap-2">
+    <form method="post" action="{% url 'deck_toggle_public' deck.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-light btn-sm"
+        onclick="return confirm('{% if deck.is_public %}Are you sure you want to make this deck private? Anyone who saved it will no longer have access.{% else %}Make this deck public? Anyone with the link can view it.{% endif %}')">
+        {% if deck.is_public %}Make Private{% else %}Make Public{% endif %}
+      </button>
+    </form>
     <a href="{% url 'deck_detail' deck.id %}" class="btn btn-outline-light btn-sm">View</a>
   </div>
 </div>
