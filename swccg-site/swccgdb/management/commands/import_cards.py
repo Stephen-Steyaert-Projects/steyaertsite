@@ -30,7 +30,6 @@ class Command(BaseCommand):
     TYPE_MAPPING = {
         # Light Side Characters
         ('CHARACTER', 'Jedi Master'): 'jedi_master_character',
-        ('CHARACTER', 'Jedi Test'): 'jedi_test',
         ('CHARACTER', 'Rebel'): 'rebel_character',
         ('CHARACTER', 'Republic'): 'republic_character',
         # Shared Characters
@@ -49,8 +48,10 @@ class Command(BaseCommand):
         ('EPIC EVENT', None): 'epic_event',
         ('OBJECTIVE', 'Game Aid'): 'game_aid',
         ('INTERRUPT', None): 'interrupt',
+        ('JEDI TEST', 'Jedi Test'): 'jedi_test',
         ('LOCATION', None): 'location',
         ('OBJECTIVE', None): 'objective',
+        ('PODRACER', 'Podracer'): 'podracer',
         ('STARSHIP', None): 'starship',
         ('VEHICLE', None): 'vehicle',
         ('WEAPON', None): 'weapon',
@@ -80,7 +81,8 @@ class Command(BaseCommand):
     def set_name_to_url(self, set_name):
         """Convert set name to URL format"""
         url_name = set_name.replace(' ', '').replace("'", '')
-        url_name = url_name.replace('II', '2').replace('III', '3')
+        # Replace III before II to avoid partial replacement
+        url_name = url_name.replace('III', '3').replace('II', '2')
         return f'https://res.starwarsccg.org/cardlists/{url_name}Type.html'
 
     def parse_card_type(self, section_type, img_alt):
@@ -175,12 +177,29 @@ class Command(BaseCommand):
 
             # Check if this row contains a card
             card_link = row.find('a', href=lambda x: x and f'-{side_name}/' in x if x else False)
-            if not card_link or not current_section:
+            if not card_link:
                 continue
 
             # Extract card data
             img = row.find('img')
             img_alt = img.get('alt') if img else None
+            img_title = img.get('title') if img else None
+
+            # For Premium set: infer section from image alt/title
+            if not current_section and img_alt:
+                # Map card type icons to section names
+                if img_alt in ['Starship', 'Vehicle', 'Weapon', 'Device', 'Effect',
+                              'Interrupt', 'Objective', 'Game Aid', "Admiral's Order",
+                              'Defensive Shield', 'Epic Event', 'Creature', 'Podracer']:
+                    current_section = img_alt.upper().replace("'", "'")
+                elif img_alt in ['Rebel', 'Imperial', 'Alien', 'Droid', 'Jedi Master',
+                                'Dark Jedi Master', 'Republic', 'Sith', 'Jedi Test']:
+                    current_section = 'CHARACTER'
+                elif img_alt in ['Site', 'System', 'Sector']:
+                    current_section = 'LOCATION'
+
+            if not current_section:
+                continue
 
             # Get card name (decode HTML entities like &#8226;)
             card_name = html.unescape(card_link.get_text(strip=True))

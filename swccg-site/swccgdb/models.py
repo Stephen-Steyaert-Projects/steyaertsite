@@ -43,6 +43,7 @@ class Card(models.Model):
         INTERRUPT = 'interrupt', 'Interrupt'
         LOCATION = 'location', 'Location'
         OBJECTIVE = 'objective', 'Objective'
+        PODRACER = 'podracer', 'Podracer'
         STARSHIP = 'starship', 'Starship'
         VEHICLE = 'vehicle', 'Vehicle'
         WEAPON = 'weapon', 'Weapon'
