@@ -101,13 +101,21 @@ class Command(BaseCommand):
 
         return card_type, None
 
+    def extract_set_from_url(self, url):
+        """Extract set name from card URL (for Premium cards)"""
+        # URL format: https://res.starwarsccg.org/cards/EnhancedPremiere-Light/large/...
+        match = re.search(r'/cards/([^/]+)-(Light|Dark)/', url)
+        if match:
+            set_slug = match.group(1)
+            # Convert from slug to readable name
+            # EnhancedPremiere -> Enhanced Premiere
+            # JediPack -> Jedi Pack
+            readable = re.sub(r'([a-z])([A-Z])', r'\1 \2', set_slug)
+            return readable
+        return None
+
     def import_set(self, set_name):
         self.stdout.write(f'Importing set: {set_name}')
-
-        # Get or create the set
-        card_set, created = Set.objects.get_or_create(name=set_name)
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created new set: {set_name}'))
 
         # Fetch the HTML
         url = self.set_name_to_url(set_name)
@@ -128,9 +136,17 @@ class Command(BaseCommand):
         skipped_count = 0
 
         for side_name, side_code in [('Light', 'L'), ('Dark', 'D')]:
-            cards_data = self.parse_cards(soup, side_name)
+            cards_data = self.parse_cards(soup, side_name, set_name)
 
             for card_data in cards_data:
+                # For Premium set, extract actual set from URL
+                actual_set_name = card_data.pop('_extracted_set_name', set_name)
+
+                # Get or create the set
+                card_set, created = Set.objects.get_or_create(name=actual_set_name)
+                if created:
+                    self.stdout.write(self.style.SUCCESS(f'Created new set: {actual_set_name}'))
+
                 card_data['card_set'] = card_set
                 card_data['side'] = side_code
 
@@ -160,7 +176,7 @@ class Command(BaseCommand):
             f'Completed {set_name}: {created_count} created, {updated_count} updated, {skipped_count} skipped'
         ))
 
-    def parse_cards(self, soup, side_name):
+    def parse_cards(self, soup, side_name, set_name):
         """Parse cards from HTML for a specific side"""
         cards = []
         current_section = None
@@ -217,11 +233,20 @@ class Command(BaseCommand):
                 ))
                 continue
 
-            cards.append({
+            card_data = {
                 'name': card_name,
                 'card_type': card_type,
                 'secondary_card_type': secondary_card_type,
                 'rarity': rarity if rarity else '',
-            })
+            }
+
+            # For Premium set, extract actual set name from URL
+            if set_name == 'Premium':
+                card_url = card_link.get('href', '')
+                extracted_set = self.extract_set_from_url(card_url)
+                if extracted_set:
+                    card_data['_extracted_set_name'] = extracted_set
+
+            cards.append(card_data)
 
         return cards

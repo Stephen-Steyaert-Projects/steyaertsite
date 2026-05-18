@@ -18,11 +18,11 @@ class Command(BaseCommand):
         # Find potential duplicates (similar names)
         all_sets = Set.objects.all().order_by('name')
 
-        # Group sets by normalized name (ignore apostrophes, "Palace" vs no Palace, etc.)
+        # Group sets by normalized name
         set_groups = {}
         for s in all_sets:
-            # Normalize name for comparison
-            normalized = s.name.lower().replace("'", "").replace(" palace", "").strip()
+            # Normalize name for comparison (case-insensitive, ignore punctuation differences)
+            normalized = s.name.lower().replace("'", "").replace("'", "").strip()
             if normalized not in set_groups:
                 set_groups[normalized] = []
             set_groups[normalized].append(s)
