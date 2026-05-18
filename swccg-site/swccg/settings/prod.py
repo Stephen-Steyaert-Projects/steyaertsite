@@ -32,6 +32,11 @@ SECURE_SSL_REDIRECT = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
+# Session timeout settings
+SESSION_COOKIE_AGE = 7200  # 2 hours in seconds
+SESSION_SAVE_EVERY_REQUEST = True  # Reset timeout on each request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 # Trust X-Forwarded-Proto header from nginx-proxy for HTTPS detection
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
