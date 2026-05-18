@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
     def parse_card_type(self, section_type, img_alt):
         """Map HTML card type to Django model choice"""
-        # Handle dual types like "Alien/Rebel"
+        # Handle dual types like "Alien/Rebel" or "Alien/Imperial"
         if img_alt and '/' in img_alt:
             types = img_alt.split('/')
             primary_type = self.TYPE_MAPPING.get((section_type, types[0].strip()), None)
@@ -231,8 +231,10 @@ class Command(BaseCommand):
                               'Interrupt', 'Objective', 'Game Aid', "Admiral's Order",
                               'Defensive Shield', 'Epic Event', 'Creature', 'Podracer']:
                     current_section = img_alt.upper().replace("'", "'")
-                elif img_alt in ['Rebel', 'Imperial', 'Alien', 'Droid', 'Jedi Master',
-                                'Dark Jedi Master', 'Republic', 'Sith', 'Jedi Test']:
+                # Check if it contains character types (handle dual types like "Alien/Imperial")
+                elif any(char_type in img_alt for char_type in ['Rebel', 'Imperial', 'Alien', 'Droid',
+                                                                  'Jedi Master', 'Dark Jedi Master',
+                                                                  'Republic', 'Sith', 'Jedi Test']):
                     current_section = 'CHARACTER'
                 elif img_alt in ['Site', 'System', 'Sector']:
                     current_section = 'LOCATION'
