@@ -101,6 +101,28 @@ class Command(BaseCommand):
 
         return card_type, None
 
+    def normalize_set_name(self, name):
+        """Normalize set name for comparison"""
+        normalized = name.lower()
+        normalized = normalized.replace("'", "").replace("'", "")
+        normalized = normalized.replace("-", " ").replace("  ", " ")
+        normalized = normalized.replace("twoplayer", "two player")
+        normalized = normalized.strip()
+        return normalized
+
+    def find_or_create_set(self, set_name):
+        """Find existing set or create new one using normalized name matching"""
+        normalized_target = self.normalize_set_name(set_name)
+
+        # Check all existing sets for a match
+        for existing_set in Set.objects.all():
+            if self.normalize_set_name(existing_set.name) == normalized_target:
+                return existing_set, False
+
+        # No match found, create new set
+        new_set = Set.objects.create(name=set_name)
+        return new_set, True
+
     def extract_set_from_url(self, url):
         """Extract set name from card URL (for Premium cards)"""
         # URL format: https://res.starwarsccg.org/cards/EnhancedPremiere-Light/large/...
@@ -142,8 +164,8 @@ class Command(BaseCommand):
                 # For Premium set, extract actual set from URL
                 actual_set_name = card_data.pop('_extracted_set_name', set_name)
 
-                # Get or create the set
-                card_set, created = Set.objects.get_or_create(name=actual_set_name)
+                # Find or create the set using normalized matching
+                card_set, created = self.find_or_create_set(actual_set_name)
                 if created:
                     self.stdout.write(self.style.SUCCESS(f'Created new set: {actual_set_name}'))
 

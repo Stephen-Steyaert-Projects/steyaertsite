@@ -12,6 +12,15 @@ class Command(BaseCommand):
             help='Show what would be done without actually doing it',
         )
 
+    def normalize_name(self, name):
+        """Normalize set name for comparison"""
+        normalized = name.lower()
+        normalized = normalized.replace("'", "").replace("'", "")
+        normalized = normalized.replace("-", " ").replace("  ", " ")
+        normalized = normalized.replace("twoplayer", "two player")
+        normalized = normalized.strip()
+        return normalized
+
     def handle(self, *args, **options):
         dry_run = options['dry_run']
 
@@ -21,8 +30,8 @@ class Command(BaseCommand):
         # Group sets by normalized name
         set_groups = {}
         for s in all_sets:
-            # Normalize name for comparison (case-insensitive, ignore punctuation differences)
-            normalized = s.name.lower().replace("'", "").replace("'", "").strip()
+            # Normalize name for comparison
+            normalized = self.normalize_name(s.name)
             if normalized not in set_groups:
                 set_groups[normalized] = []
             set_groups[normalized].append(s)
