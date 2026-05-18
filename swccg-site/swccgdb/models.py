@@ -61,6 +61,11 @@ class Card(models.Model):
     side = models.CharField(max_length=1, choices=Side.choices)
     rarity = models.CharField(max_length=2, choices=Rarity.choices, blank=True)
 
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.name = self.name.strip()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} ({self.card_set})"
 
