@@ -20,18 +20,26 @@ class Card(models.Model):
         DARK = 'D', 'Dark Side'
 
     class CardType(models.TextChoices):
-        HIGH_REPUBLIC_CHARACTER = 'high_republic_character', 'High Republic'
+        # Light Side Characters
         JEDI_MASTER_CHARACTER = 'jedi_master_character', 'Jedi Master'
         JEDI_TEST = 'jedi_test', 'Jedi Test'
         REBEL_CHARACTER = 'rebel_character', 'Rebel'
+        REPUBLIC_CHARACTER = 'republic_character', 'Republic'
+        # Shared Characters
         ALIEN_CHARACTER = 'alien_character', 'Alien'
         DROID_CHARACTER = 'droid_character', 'Droid'
+        # Dark Side Characters
+        DARK_JEDI_MASTER_CHARACTER = 'dark_jedi_master_character', 'Dark Jedi Master'
         IMPERIAL_CHARACTER = 'imperial_character', 'Imperial'
+        SITH_CHARACTER = 'sith_character', 'Sith'
+        # Non-Character Types
         ADMIRALS_ORDER = 'admirals_order', "Admiral's Order"
+        CREATURE = 'creature', 'Creature'
         DEFENSIVE_SHIELD = 'defensive_shield', 'Defensive Shield'
         DEVICE = 'device', 'Device'
         EFFECT = 'effect', 'Effect'
         EPIC_EVENT = 'epic_event', 'Epic Event'
+        GAME_AID = 'game_aid', 'Game Aid'
         INTERRUPT = 'interrupt', 'Interrupt'
         LOCATION = 'location', 'Location'
         OBJECTIVE = 'objective', 'Objective'
@@ -56,8 +64,8 @@ class Card(models.Model):
 
     name = models.CharField(max_length=200)
     card_set = models.ForeignKey(Set, on_delete=models.PROTECT, related_name='cards')
-    card_type = models.CharField(max_length=25, choices=CardType.choices)
-    secondary_card_type = models.CharField(max_length=25, choices=CardType.choices, blank=True, null=True)
+    card_type = models.CharField(max_length=30, choices=CardType.choices)
+    secondary_card_type = models.CharField(max_length=30, choices=CardType.choices, blank=True, null=True)
     side = models.CharField(max_length=1, choices=Side.choices)
     rarity = models.CharField(max_length=2, choices=Rarity.choices, blank=True)
 
