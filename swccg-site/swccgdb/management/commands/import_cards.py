@@ -104,7 +104,8 @@ class Command(BaseCommand):
     def normalize_set_name(self, name):
         """Normalize set name for comparison"""
         normalized = name.lower()
-        normalized = normalized.replace("'", "").replace("'", "")
+        # Remove both straight apostrophe (U+0027) and right single quotation mark (U+2019)
+        normalized = normalized.replace("’", "").replace("’", "")
         normalized = normalized.replace("-", " ").replace("  ", " ")
         normalized = normalized.replace("twoplayer", "two player")
         normalized = normalized.strip()

@@ -15,6 +15,7 @@ class Command(BaseCommand):
     def normalize_name(self, name):
         """Normalize set name for comparison"""
         normalized = name.lower()
+        # Remove both straight (') and curly (') apostrophes
         normalized = normalized.replace("'", "").replace("'", "")
         normalized = normalized.replace("-", " ").replace("  ", " ")
         normalized = normalized.replace("twoplayer", "two player")
