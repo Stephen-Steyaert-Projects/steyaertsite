@@ -56,11 +56,11 @@ class Command(BaseCommand):
                     elif not has_image:
                         duplicates.append(s)
 
-                # If no set has an image, keep the one with most cards
+                # If no set has an image, keep the one with lowest ID (oldest)
                 if not keeper and sets:
-                    keeper = max(sets, key=lambda s: s.cards.count())
+                    keeper = min(sets, key=lambda s: s.id)
                     duplicates = [s for s in sets if s != keeper]
-                    self.stdout.write(self.style.WARNING(f'  No image found, keeping set with most cards: "{keeper.name}"'))
+                    self.stdout.write(self.style.WARNING(f'  No image found, keeping oldest set (lowest ID): "{keeper.name}" (ID {keeper.id})'))
 
                 if keeper and duplicates:
                     self.stdout.write(self.style.SUCCESS(f'  Keeping: "{keeper.name}" (ID {keeper.id})'))
