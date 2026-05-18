@@ -22,7 +22,10 @@ DATABASES = {
         'USER':get_secret("DATABASE_USERNAME", 'admin'),
         'PASSWORD':get_secret('DATABASE_PASSWORD', "admin"),
         'HOST':get_secret('DATABASE_HOST', 'db'),
-        'PORT':get_secret("DATABASE_PORT", 5432)
+        'PORT':get_secret("DATABASE_PORT", 5432),
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        }
     }
 }
 
