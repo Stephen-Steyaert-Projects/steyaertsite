@@ -43,7 +43,7 @@ from .models import Set, Card, OwnedCard, Deck, DeckCard
 
 # Create your views here.
 def tutorial(request):
-    return redirect('https://youtu.be/0khPc4fT9AQ')
+    return render(request, 'swccgdb/tutorial.html')
 
 
 def index(request):
