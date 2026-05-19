@@ -18,6 +18,7 @@ urlpatterns = [
     path("collection/save/", views.save_collection, name="save_collection"),
     path("collection/export/", views.export_collection_by_set, name="export_collection_by_set"),
     path("collection/import/", views.import_collection_by_set, name="import_collection_by_set"),
+    path("tutorial/", views.tutorial, name="tutorial"),
     path("decks/", views.deck_list, name="deck_list"),
     path("decks/new/", views.deck_new, name="deck_new"),
     path("decks/<uuid:deck_id>/", views.deck_detail, name="deck_detail"),

@@ -42,6 +42,10 @@ from django.db.models import Case, When, Value, IntegerField, Prefetch, Count, Q
 from .models import Set, Card, OwnedCard, Deck, DeckCard
 
 # Create your views here.
+def tutorial(request):
+    return redirect('https://youtu.be/0khPc4fT9AQ')
+
+
 def index(request):
     if request.user.is_authenticated:
         return redirect('home')
