@@ -222,26 +222,41 @@ def remove_copy(request, card_id: int, border: str):
 def save_collection(request):
     if request.method != 'POST':
         return redirect('owned_cards')
+
+    updates = {}
     for key, value in request.POST.items():
         if key.startswith('bb_'):
-            card_id = int(key[3:])
-            wb_key = f'wb_{card_id}'
             try:
+                card_id = int(key[3:])
                 bb = max(0, int(value or 0))
-                wb = max(0, int(request.POST.get(wb_key, 0) or 0))
-                card = Card.objects.get(id=card_id)
-                owned, _ = OwnedCard.objects.get_or_create(user=request.user, card=card)
-                owned.copies_bb = bb
-                owned.copies_wb = wb
-                owned.save()
-            except (Card.DoesNotExist, ValueError, TypeError):
+                wb = max(0, int(request.POST.get(f'wb_{card_id}', 0) or 0))
+                updates[card_id] = (bb, wb)
+            except (ValueError, TypeError):
                 continue
-    cache.delete(f'home_{request.user.id}')
-    cache.delete(f'owned_{request.user.id}')
-    cache.delete(f'missing_{request.user.id}')
-    cache.delete(f'edit_collection_{request.user.id}')
-    next_url = request.POST.get('next', 'owned_cards')
-    return redirect(next_url)
+
+    existing = {oc.card_id: oc for oc in OwnedCard.objects.filter(user=request.user)}
+    to_create = []
+    to_update = []
+
+    for card_id, (bb, wb) in updates.items():
+        if card_id in existing:
+            oc = existing[card_id]
+            oc.copies_bb = bb
+            oc.copies_wb = wb
+            to_update.append(oc)
+        else:
+            to_create.append(OwnedCard(user=request.user, card_id=card_id, copies_bb=bb, copies_wb=wb))
+
+    if to_update:
+        OwnedCard.objects.bulk_update(to_update, ['copies_bb', 'copies_wb'])
+    if to_create:
+        OwnedCard.objects.bulk_create(to_create)
+
+    cache.delete_many([
+        f'home_{request.user.id}', f'owned_{request.user.id}',
+        f'missing_{request.user.id}', f'edit_collection_{request.user.id}',
+    ])
+    return redirect(request.POST.get('next', 'owned_cards'))
 
 
 @staff_member_required
