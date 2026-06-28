@@ -448,6 +448,8 @@ def deck_detail(request, deck_id):
         .order_by('side_order', 'type_order', 'owned_card__card__name')
     )
     total = deck_cards.aggregate(t=Sum('quantity'))['t'] or 0
+    first_card = deck_cards.first()
+    deck_side = first_card.owned_card.card.get_side_display() if first_card else ''
     is_saved = (
         request.user.is_authenticated
         and not is_owner
@@ -457,6 +459,7 @@ def deck_detail(request, deck_id):
         'deck': deck,
         'deck_cards': deck_cards,
         'total': total,
+        'deck_side': deck_side,
         'is_owner': is_owner,
         'is_saved': is_saved,
     })
