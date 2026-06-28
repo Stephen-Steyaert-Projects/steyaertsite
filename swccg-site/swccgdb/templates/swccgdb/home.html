@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
 {% block title %}Home{% endblock %}
+{% block og_title %}Your Collection | SWCCG Database{% endblock %}
+{% block og_description %}Track your Star Wars CCG card collection — {{ total_owned }} of {{ total_cards }} cards owned on SWCCG Database{% endblock %}
+{% block twitter_title %}Your Collection | SWCCG Database{% endblock %}
+{% block twitter_description %}Track your Star Wars CCG card collection — {{ total_owned }} of {{ total_cards }} cards owned on SWCCG Database{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-baseline gap-3 mb-4">

@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
 {% block title %}Edit Card{% endblock %}
+{% block og_title %}Edit {{ card.name }} | SWCCG Database{% endblock %}
+{% block og_description %}Edit the Star Wars CCG card {{ card.name }} on SWCCG Database{% endblock %}
+{% block twitter_title %}Edit {{ card.name }} | SWCCG Database{% endblock %}
+{% block twitter_description %}Edit the Star Wars CCG card {{ card.name }} on SWCCG Database{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-center">

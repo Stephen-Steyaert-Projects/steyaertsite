@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 
 {% block title %}Edit {{ deck.name }}{% endblock %}
+{% block og_title %}Edit {{deck.name}} Created By {{deck.user.username}} | SWCCG Database{% endblock %}
+{% block og_description %}Edit {{deck.name}} Created By {{deck.user.username}}, {% if deck_side %}a {{ deck_side }} Side Deck{% else %}an Empty Deck{% endif %}{% endblock %}
+
+{% block twitter_title %}Edit {{deck.name}} Created By {{deck.user.username}} | SWCCG Database{% endblock %}
+{% block twitter_description %}Edit {{deck.name}} Created By {{deck.user.username}}, {% if deck_side %}a {{ deck_side }} Side Deck{% else %}an Empty Deck{% endif %}{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
