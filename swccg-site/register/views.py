@@ -1,5 +1,6 @@
-from django.shortcuts import redirect, render, get_object_or_404
+from django.shortcuts import redirect, render
 from django.contrib.auth.views import LoginView
+from django.db import transaction
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import login
@@ -23,44 +24,48 @@ class CustomLoginView(LoginView):
         return self.request.GET.get("next") or reverse('home')
 
 
+@transaction.atomic
+def _register_user(username: str, email: str, set_password_url_base: str) -> None:
+    user = User.objects.create_user(username=username, email=email, is_active=False)
+    user.set_unusable_password()
+    user.save()
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    set_password_url = set_password_url_base.replace('UIDB64', uid).replace('TOKEN', token)
+
+    ctx = {'username': user.username, 'set_password_url': set_password_url}
+    text_body = (
+        f"Hi {user.username},\n\n"
+        f"Click the link below to set your password and activate your account:\n\n"
+        f"{set_password_url}\n\n"
+        f"This link expires in 10 minutes.\n"
+    )
+    html_body = render_to_string('registration/activation_email.html', ctx)
+    msg = EmailMultiAlternatives(
+        subject="Complete your registration",
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    msg.attach_alternative(html_body, "text/html")
+    msg.send()
+
+
 def register(request: HttpRequest):
     if request.user.is_authenticated:
         return redirect('home')
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
-            user = User.objects.create_user(
-                username=form.cleaned_data['username'],
-                email=form.cleaned_data['email'],
-                is_active=False,
+            url_base = request.build_absolute_uri(
+                reverse('set_password', kwargs={'uidb64': 'UIDB64', 'token': 'TOKEN'})
             )
-            user.set_unusable_password()
-            user.save()
-
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            set_password_url = request.build_absolute_uri(
-                reverse('set_password', kwargs={'uidb64': uid, 'token': token})
-            )
-
-            ctx = {'username': user.username, 'set_password_url': set_password_url}
-            text_body = (
-                f"Hi {user.username},\n\n"
-                f"Click the link below to set your password and activate your account:\n\n"
-                f"{set_password_url}\n\n"
-                f"This link expires in 10 minutes.\n"
-            )
-            html_body = render_to_string('registration/activation_email.html', ctx)
-            email = EmailMultiAlternatives(
-                subject="Complete your registration",
-                body=text_body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[user.email],
-            )
-            email.attach_alternative(html_body, "text/html")
-            email.send()
-
-            return redirect('register_done')
+            try:
+                _register_user(form.cleaned_data['username'], form.cleaned_data['email'], url_base)
+                return redirect('register_done')
+            except Exception:
+                form.add_error(None, "We couldn't send the activation email. Please try again later.")
     else:
         form = RegistrationForm()
     return render(request, 'registration/register.html', {'form': form})

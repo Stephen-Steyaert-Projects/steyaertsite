@@ -43,8 +43,9 @@ services:
     environment:
       - ALLOWED_SENDER_DOMAINS=swccg.steyaert.xyz
       - DKIM_AUTOGENERATE=true
+      - MYNETWORKS=172.55.1.0/24 127.0.0.0/8
     volumes:
-      - /srv/mail_dkim:/srv/mail_dkim
+      - /srv/mail_dkim:/etc/opendkim/keys
     networks:
       - steyaertsite_net
 
