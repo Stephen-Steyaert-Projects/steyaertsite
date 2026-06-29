@@ -7,6 +7,9 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 SECRET_KEY = 'django-insecure-d-l-io#99wu7o#1ij(%m^9j^==f)$yk1t&k*799&f#5j_yb3r*'
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@swccg.local'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

@@ -6,6 +6,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mail:
+        condition: service_started
     env_file:
       - .env.swccg.prod
     environment:
@@ -33,6 +35,17 @@ services:
     init: true
     networks:
       - nginx-proxy
+      - steyaertsite_net
+
+  mail:
+    image: boky/postfix
+    restart: always
+    environment:
+      - ALLOWED_SENDER_DOMAINS=swccg.steyaert.xyz
+      - DKIM_AUTOGENERATE=true
+    volumes:
+      - /srv/mail_dkim:/srv/mail_dkim
+    networks:
       - steyaertsite_net
 
   db:

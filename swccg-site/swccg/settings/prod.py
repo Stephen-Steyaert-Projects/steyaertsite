@@ -3,6 +3,12 @@ from ..settings import get_secret
 
 SECRET_KEY = get_secret("SECRET_KEY")
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = get_secret("EMAIL_HOST", "mail")
+EMAIL_PORT = int(get_secret("EMAIL_PORT", 25))
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = get_secret("DEFAULT_FROM_EMAIL", "noreply@swccg.steyaert.xyz")
+
 DEBUG = False
 raw_hosts = get_secret("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(",") if host.strip()]
