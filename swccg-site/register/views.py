@@ -61,11 +61,8 @@ def register(request: HttpRequest):
             url_base = request.build_absolute_uri(
                 reverse('set_password', kwargs={'uidb64': 'UIDB64', 'token': 'TOKEN'})
             )
-            try:
-                _register_user(form.cleaned_data['username'], form.cleaned_data['email'], url_base)
-                return redirect('register_done')
-            except Exception:
-                form.add_error(None, "We couldn't send the activation email. Please try again later.")
+            _register_user(form.cleaned_data['username'], form.cleaned_data['email'], url_base)
+            return redirect('register_done')
     else:
         form = RegistrationForm()
     return render(request, 'registration/register.html', {'form': form})
