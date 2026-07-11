@@ -515,6 +515,19 @@ def deck_delete(request, deck_id):
 
 
 @login_required
+def deck_duplicate(request, deck_id):
+    deck = get_object_or_404(Deck, id=deck_id, user=request.user)
+    if request.method == 'POST':
+        new_deck = Deck.objects.create(user=request.user, name=f"{deck.name} (Copy)")
+        DeckCard.objects.bulk_create([
+            DeckCard(deck=new_deck, owned_card=dc.owned_card, quantity=dc.quantity)
+            for dc in deck.deck_cards.all()
+        ])
+        return redirect('deck_edit', deck_id=new_deck.id)
+    return redirect('deck_list')
+
+
+@login_required
 def deck_toggle_public(request, deck_id):
     deck = get_object_or_404(Deck, id=deck_id, user=request.user)
     if request.method == 'POST':

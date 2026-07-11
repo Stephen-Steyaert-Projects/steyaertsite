@@ -31,6 +31,10 @@
         <div class="mt-auto d-flex gap-2">
           <a href="{% url 'deck_detail' deck.id %}" class="btn btn-outline-light btn-sm">View</a>
           <a href="{% url 'deck_edit' deck.id %}" class="btn btn-outline-light btn-sm">Edit</a>
+          <form method="post" action="{% url 'deck_duplicate' deck.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-info btn-sm">Duplicate</button>
+          </form>
           <form method="post" action="{% url 'deck_delete' deck.id %}" class="ms-auto" onsubmit="return confirm('Delete {{ deck.name }}?')">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
