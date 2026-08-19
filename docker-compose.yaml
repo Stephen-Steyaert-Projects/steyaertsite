@@ -8,6 +8,8 @@ services:
         condition: service_healthy
       mail:
         condition: service_started
+      redis:
+        condition: service_healthy
     env_file:
       - .env.swccg.prod
     environment:
@@ -46,6 +48,19 @@ services:
       - MYNETWORKS=172.55.1.0/24 127.0.0.0/8
     volumes:
       - /srv/mail_dkim:/etc/opendkim/keys
+    networks:
+      - steyaertsite_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: steyaertsite_redis
+    restart: always
+    init: true
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - steyaertsite_net
 

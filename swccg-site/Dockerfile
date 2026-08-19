@@ -1,8 +1,9 @@
 # ---- Stage 1: Build dependencies ----
-FROM python:3.12-alpine3.23 AS builder
+FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
@@ -19,20 +20,19 @@ RUN apk add --no-cache \
     python3-dev \
     libwebp-dev
 
-# Copy requirements
-COPY requirements.txt .
+# Resolve and install deps from pyproject.toml/uv.lock (prod group, no dev deps) into
+# /app/.venv, without installing this project itself (it's an app, not a distributable package).
+COPY pyproject.toml uv.lock .
 
-# Upgrade pip and install Python deps with prefer-binary
-# Use cache mounts to speed up builds
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade --root-user-action=ignore pip setuptools wheel && \
-    pip install --root-user-action=ignore --prefer-binary -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --group prod --no-install-project --no-editable
 
 # ---- Stage 2: Runtime image ----
 FROM python:3.12-alpine3.23
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Add runtime deps only (keep lean)
 RUN apk add --no-cache \
@@ -49,9 +49,8 @@ RUN adduser -D appuser
 
 WORKDIR /app
 
-# Copy installed Python packages and binaries from build stage
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
+# Copy the resolved virtualenv from the build stage
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy your app code (chown to non-root)
 COPY --chown=appuser:appuser . .

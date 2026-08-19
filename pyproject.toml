@@ -17,8 +17,3 @@ prod = [
     "gunicorn>=23.0.0",
     "psycopg2-binary>=2.9.10",
 ]
-
-[tool.uv.workspace]
-members = [
-    "swccg-site",
-]
