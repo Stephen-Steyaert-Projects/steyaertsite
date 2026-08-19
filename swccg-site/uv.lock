@@ -762,6 +762,7 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "openpyxl" },
     { name = "pillow" },
+    { name = "redis" },
     { name = "requests" },
 ]
 
@@ -786,6 +787,7 @@ requires-dist = [
     { name = "djangorestframework", specifier = ">=3.18.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=12.2.0" },
+    { name = "redis", specifier = ">=8.1.0" },
     { name = "requests", specifier = ">=2.34.2" },
 ]
 

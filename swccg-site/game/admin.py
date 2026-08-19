@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Room
+from .models import GameDeck, Room
+
+
+@admin.register(GameDeck)
+class GameDeckAdmin(admin.ModelAdmin):
+    list_display = ['name', 'user', 'side', 'created_at']
+    search_fields = ['name', 'user__username']
+    list_filter = ['side']
 
 
 @admin.register(Room)

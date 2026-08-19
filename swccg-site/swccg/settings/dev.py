@@ -16,6 +16,9 @@ CHANNEL_LAYERS = {
     }
 }
 
+# None -> in-memory fallback for live match state (game/state_store.py); prod overrides this.
+GAME_REDIS_URL = None
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
