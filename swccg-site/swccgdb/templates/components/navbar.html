@@ -26,6 +26,9 @@
           <a class="nav-link {% if current_url_name == 'all_cards' %}active{% endif %}" href="{% url 'all_cards' %}">All Cards</a>
         </li>
         {% if user.is_authenticated %}
+        <li class="nav-item">
+          <a class="nav-link {% if current_url_name == 'game_index' %}active{% endif %}" href="{% url 'game_index' %}">Play</a>
+        </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {% if current_url_name == 'owned_cards' or current_url_name == 'missing_cards' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">My Collection</a>
           <ul class="dropdown-menu dropdown-menu-dark">
