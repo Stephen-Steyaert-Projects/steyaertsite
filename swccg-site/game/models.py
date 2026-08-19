@@ -93,3 +93,27 @@ class Room(models.Model):
 
     def user_id_for_role(self, role):
         return self.created_by_id if role == 'creator' else self.player_two_id
+
+    def promote_player_two_to_creator(self):
+        """Used when the creator is kicked for idling: player_two becomes creator, freeing the player_two slot."""
+        Room.objects.filter(pk=self.pk).update(created_by_id=self.player_two_id, player_two_id=None)
+
+    def clear_player_two(self):
+        Room.objects.filter(pk=self.pk).update(player_two_id=None)
+
+    def remove_player(self, user_id):
+        """
+        Frees this user's slot (promoting player_two to creator if they were the
+        creator), or deletes the room outright if that would leave it empty.
+        Returns True if the room was deleted.
+        """
+        if user_id == self.created_by_id:
+            if self.player_two_id is None:
+                self.delete()
+                return True
+            self.promote_player_two_to_creator()
+            return False
+        if user_id == self.player_two_id:
+            self.clear_player_two()
+            return False
+        return False

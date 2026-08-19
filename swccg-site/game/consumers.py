@@ -21,54 +21,60 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
             return
 
-        self.room = room
         self.user = user
         self.store = get_store()
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        state = await self.load_state()
-        state.connected_user_ids.add(user.id)
-        await self.save_and_broadcast(state)
+        state = await self.load_state(room)
+
+        # If this user already has another tab/connection open on this room, close the
+        # old one rather than silently losing track of it.
+        stale_channel = state.connected_channels.get(user.id)
+        if stale_channel and stale_channel != self.channel_name:
+            await self.channel_layer.send(stale_channel, {
+                "type": "kick.close",
+                "reason": "You opened this room in another tab.",
+            })
+
+        state.connected_channels[user.id] = self.channel_name
+        await self.save_and_broadcast(room, state)
 
     async def disconnect(self, close_code):
-        if not hasattr(self, "room"):
+        if not hasattr(self, "user"):
             return
-        state = await self.load_state()
-        state.connected_user_ids.discard(self.user.id)
+        room = await self.get_room(self.room_code)
+        if room is None:
+            return
+        state = await self.load_state(room)
+        # Only clear the slot if it's still us — an idle-kick may have already replaced it.
+        if state.connected_channels.get(self.user.id) == self.channel_name:
+            del state.connected_channels[self.user.id]
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        await self.save_and_broadcast(state)
+        await self.save_and_broadcast(room, state)
 
     async def receive_json(self, content, **kwargs):
         message_type = content.get("type")
-        state = await self.load_state()
 
         if message_type == "ready":
             deck = await self.get_deck(content.get("deck_id"))
             if deck is None:
                 await self.send_json({"type": "error", "message": "Deck not found."})
                 return
-            try:
-                state.mark_ready(self.room, self.user.id, deck)
-            except PermissionError as exc:
-                await self.send_json({"type": "error", "message": str(exc)})
-                return
-            await self.save_and_broadcast(state)
+            await self.apply(lambda state, room: state.mark_ready(room, self.user.id, deck))
         elif message_type == "pass_phase":
-            try:
-                state.pass_phase(self.room, self.user.id)
-            except PermissionError as exc:
-                await self.send_json({"type": "error", "message": str(exc)})
-                return
-            await self.save_and_broadcast(state)
+            await self.apply(lambda state, room: state.pass_phase(room, self.user.id))
+        elif message_type == "resign":
+            await self.apply(lambda state, room: state.resign(room, self.user.id))
         elif message_type == "rematch":
-            try:
-                state.rematch(self.room, self.user.id)
-            except PermissionError as exc:
-                await self.send_json({"type": "error", "message": str(exc)})
-                return
-            await self.save_and_broadcast(state)
+            await self.apply(lambda state, room: state.rematch(room, self.user.id))
+        elif message_type == "ping":
+            await self.apply(lambda state, room: None)
+        elif message_type == "leave":
+            await self.leave_room()
+        elif message_type == "close_room":
+            await self.close_room()
         elif message_type == "chat":
             text = str(content.get("text", "")).strip()[:500]
             if text:
@@ -77,18 +83,112 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
                     {"type": "room.chat", "user_id": self.user.id, "username": self.user.username, "text": text},
                 )
 
-    async def load_state(self):
+    async def apply(self, mutate):
+        """Loads fresh state/room, applies a mutation, and broadcasts — or sends back a PermissionError."""
+        room = await self.get_room(self.room_code)
+        state = await self.load_state(room)
+        try:
+            mutate(state, room)
+        except PermissionError as exc:
+            await self.send_json({"type": "error", "message": str(exc)})
+            return
+
+        idle_role = state.check_timeout()
+        if idle_role:
+            reason = (
+                "You were idle too long on your turn and forfeited the game."
+                if state.ended_by_role == idle_role
+                else "You took too long to get ready and were removed from the room."
+            )
+            room = await self.kick_idle_player(room, state, idle_role, reason)
+
+        await self.save_and_broadcast(room, state)
+
+    async def kick_idle_player(self, room, state, idle_role, reason):
+        """Frees the idle player's room slot (promoting player_two to creator if needed) and closes their socket."""
+        kicked_user_id = room.user_id_for_role(idle_role)
+
+        if idle_role == 'creator':
+            await self.promote_player_two(room)
+        else:
+            await self.clear_player_two(room)
+
+        channel_name = state.connected_channels.pop(kicked_user_id, None)
+        if channel_name:
+            await self.channel_layer.send(channel_name, {"type": "kick.close", "reason": reason})
+
+        return await self.get_room(self.room_code)
+
+    async def leave_room(self):
+        """A deliberate exit. Mid-game this counts as resigning; otherwise it just frees your slot."""
+        room = await self.get_room(self.room_code)
+        if room is None or room.role_for_user_id(self.user.id) is None:
+            await self.close()
+            return
+
+        state = await self.load_state(room)
+        if state.status == 'in_progress':
+            try:
+                state.resign(room, self.user.id)
+            except PermissionError:
+                pass
+
+        state.connected_channels.pop(self.user.id, None)
+        deleted = await self.remove_player(room, self.user.id)
+
+        if deleted:
+            await self.store.delete(self.room_code)
+        else:
+            room = await self.get_room(self.room_code)
+            await self.save_and_broadcast(room, state)
+
+        await self.close()
+
+    async def close_room(self):
+        """Creator-only: tears the room down entirely. Blocked mid-game so it can't be used to deny a loss."""
+        room = await self.get_room(self.room_code)
+        if room is None:
+            return
+        if room.created_by_id != self.user.id:
+            await self.send_json({"type": "error", "message": "Only the room creator can close the room."})
+            return
+
+        state = await self.load_state(room)
+        if state.status == 'in_progress':
+            await self.send_json({"type": "error", "message": "You can't close the room while a game is in progress."})
+            return
+
+        other_channel = next(
+            (ch for uid, ch in state.connected_channels.items() if uid != self.user.id), None
+        )
+
+        await self.destroy_room(room)
+        await self.store.delete(self.room_code)
+
+        if other_channel:
+            await self.channel_layer.send(other_channel, {
+                "type": "kick.close",
+                "reason": "The room was closed by its creator.",
+            })
+
+        await self.close()
+
+    async def kick_close(self, event):
+        await self.send_json({"type": "kicked", "message": event.get("reason", "You were disconnected.")})
+        await self.close()
+
+    async def load_state(self, room):
         state = await self.store.get(self.room_code)
         if state is None:
             state = RoomState()
-        state.ensure_sides(self.room)
+        state.ensure_sides(room)
         return state
 
-    async def save_and_broadcast(self, state):
+    async def save_and_broadcast(self, room, state):
         await self.store.save(self.room_code, state)
         await self.channel_layer.group_send(
             self.group_name,
-            {"type": "room.update", "state": state.as_dict(self.room)},
+            {"type": "room.update", "state": state.as_dict(room)},
         )
 
     async def room_update(self, event):
@@ -108,3 +208,19 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         if not deck_id:
             return None
         return GameDeck.objects.filter(id=deck_id).first()
+
+    @sync_to_async
+    def promote_player_two(self, room):
+        room.promote_player_two_to_creator()
+
+    @sync_to_async
+    def clear_player_two(self, room):
+        room.clear_player_two()
+
+    @sync_to_async
+    def remove_player(self, room, user_id):
+        return room.remove_player(user_id)
+
+    @sync_to_async
+    def destroy_room(self, room):
+        room.delete()

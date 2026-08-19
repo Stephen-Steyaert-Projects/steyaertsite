@@ -5,12 +5,18 @@ Storage backend (Redis in prod, in-memory in dev) lives in state_store.py.
 """
 import json
 import random
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 
 from swccgdb.models import Card
 
 ROLES = ('creator', 'player_two')
+IDLE_TIMEOUT_SECONDS = 5 * 60
+
+
+def other_role(role):
+    return 'player_two' if role == 'creator' else 'creator'
 
 
 class Phase(str, Enum):
@@ -33,10 +39,15 @@ class RoomState:
     phase_index: int = 0
     active_side: str = None
     turn_number: int = 1
-    connected_user_ids: set = field(default_factory=set)
+    connected_channels: dict = field(default_factory=dict)  # user_id (int) -> channel_name, for targeted kicks
+    ended_by_role: str = None            # role who resigned/idled out, once the game is over
+    last_action_at: float = None         # unix time of the active player's last real action, during in_progress
+    awaiting_ready_since: float = None   # unix time this game started waiting on ready-checks
 
     @property
     def status(self):
+        if self.ended_by_role:
+            return 'game_over'
         if not self.side_by_role:
             return 'waiting_for_player'
         if len(self.ready_decks) < 2:
@@ -50,6 +61,7 @@ class RoomState:
         sides = [Card.Side.DARK, Card.Side.LIGHT]
         random.shuffle(sides)
         self.side_by_role = dict(zip(ROLES, sides))
+        self.awaiting_ready_since = time.time()
 
     def assigned_side(self, room, user_id):
         role = room.role_for_user_id(user_id)
@@ -74,6 +86,7 @@ class RoomState:
             self.phase_index = 0
             self.active_side = Card.Side.DARK
             self.turn_number = 1
+            self.last_action_at = time.time()
 
     def active_user_id(self, room):
         if self.status != 'in_progress':
@@ -82,6 +95,8 @@ class RoomState:
         return room.user_id_for_role(role) if role else None
 
     def pass_phase(self, room, user_id):
+        if self.status == 'game_over':
+            raise PermissionError("This game is over.")
         if self.status != 'in_progress':
             raise PermissionError("The game hasn't started yet.")
         if user_id != self.active_user_id(room):
@@ -91,18 +106,71 @@ class RoomState:
             self.phase_index = 0
             self.active_side = Card.Side.LIGHT if self.active_side == Card.Side.DARK else Card.Side.DARK
             self.turn_number += 1
+        self.last_action_at = time.time()
+
+    def resign(self, room, user_id):
+        role = room.role_for_user_id(user_id)
+        if role is None:
+            raise PermissionError("You're not a player in this room.")
+        if self.status != 'in_progress':
+            raise PermissionError("There's no game in progress to resign from.")
+        self.ended_by_role = role
+
+    def check_timeout(self):
+        """
+        Resolves two kinds of stall: an active player gone quiet mid-game (ends the game
+        in their opponent's favor), or one player stuck waiting on a ready-check the other
+        never completes (bounces the room back to waiting for a replacement). Returns the
+        role that timed out, for the caller to kick their socket and free their room slot —
+        or None if nothing timed out.
+        """
+        if self.status == 'in_progress':
+            if self.last_action_at is None or time.time() - self.last_action_at < IDLE_TIMEOUT_SECONDS:
+                return None
+            idle_role = next((r for r, side in self.side_by_role.items() if side == self.active_side), None)
+            if idle_role is None:
+                return None
+            self.ended_by_role = idle_role
+            return idle_role
+
+        if self.status == 'awaiting_ready':
+            if self.awaiting_ready_since is None or time.time() - self.awaiting_ready_since < IDLE_TIMEOUT_SECONDS:
+                return None
+            # Only act when it's unambiguous: exactly one side is actually waiting on the other.
+            if len(self.ready_decks) != 1:
+                return None
+            idle_role = next(r for r in ROLES if r not in self.ready_decks)
+            self.side_by_role = {}
+            self.ready_decks = {}
+            self.awaiting_ready_since = None
+            return idle_role
+
+        return None
 
     def rematch(self, room, user_id):
         if room.role_for_user_id(user_id) is None:
             raise PermissionError("You're not a player in this room.")
+        if self.status != 'game_over':
+            raise PermissionError("Finish this game (or resign) before starting a new one.")
+        if not room.is_full:
+            raise PermissionError("Waiting for a second player to join before you can play again.")
         self.game_number += 1
         self.side_by_role = {role: side for role, side in zip(ROLES, reversed(list(self.side_by_role.values())))}
         self.ready_decks = {}
+        self.ended_by_role = None
         self.phase_index = 0
         self.active_side = None
         self.turn_number = 1
+        self.last_action_at = None
+        self.awaiting_ready_since = time.time()
 
     def as_dict(self, room):
+        resigned_user_id = None
+        winner_user_id = None
+        if self.status == 'game_over':
+            resigned_user_id = room.user_id_for_role(self.ended_by_role)
+            winner_user_id = room.user_id_for_role(other_role(self.ended_by_role))
+
         return {
             "type": "state",
             "status": self.status,
@@ -113,7 +181,11 @@ class RoomState:
             "active_user_id": self.active_user_id(room),
             "side_by_user_id": {room.user_id_for_role(role): side for role, side in self.side_by_role.items()},
             "ready_user_ids": [room.user_id_for_role(role) for role in self.ready_decks],
-            "connected_user_ids": sorted(self.connected_user_ids),
+            "connected_user_ids": sorted(self.connected_channels.keys()),
+            "resigned_user_id": resigned_user_id,
+            "winner_user_id": winner_user_id,
+            "room_is_full": room.is_full,
+            "creator_user_id": room.created_by_id,
         }
 
     def to_json(self):
@@ -124,7 +196,10 @@ class RoomState:
             "phase_index": self.phase_index,
             "active_side": self.active_side,
             "turn_number": self.turn_number,
-            "connected_user_ids": sorted(self.connected_user_ids),
+            "connected_channels": self.connected_channels,
+            "ended_by_role": self.ended_by_role,
+            "last_action_at": self.last_action_at,
+            "awaiting_ready_since": self.awaiting_ready_since,
         })
 
     @classmethod
@@ -137,5 +212,8 @@ class RoomState:
             phase_index=data["phase_index"],
             active_side=data["active_side"],
             turn_number=data["turn_number"],
-            connected_user_ids=set(data["connected_user_ids"]),
+            connected_channels={int(uid): ch for uid, ch in data["connected_channels"].items()},
+            ended_by_role=data.get("ended_by_role"),
+            last_action_at=data.get("last_action_at"),
+            awaiting_ready_since=data.get("awaiting_ready_since"),
         )
