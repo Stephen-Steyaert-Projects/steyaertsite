@@ -2,11 +2,10 @@
 {% load static %}
 
 {% block title %}Edit {{ deck.name }}{% endblock %}
-{% block og_title %}Edit {{deck.name}} Created By {{deck.user.username}} | SWCCG Database{% endblock %}
-{% block og_description %}Edit {{deck.name}} Created By {{deck.user.username}}, {% if deck_side %}a {{ deck_side }} Side Deck{% else %}an Empty Deck{% endif %}{% endblock %}
-
-{% block twitter_title %}Edit {{deck.name}} Created By {{deck.user.username}} | SWCCG Database{% endblock %}
-{% block twitter_description %}Edit {{deck.name}} Created By {{deck.user.username}}, {% if deck_side %}a {{ deck_side }} Side Deck{% else %}an Empty Deck{% endif %}{% endblock %}
+{% block og_title %}Edit {{ deck.name }} | SWCCG Database{% endblock %}
+{% block og_description %}Edit {{ deck.name }}, a {{ deck.get_side_display }} game deck.{% endblock %}
+{% block twitter_title %}Edit {{ deck.name }} | SWCCG Database{% endblock %}
+{% block twitter_description %}Edit {{ deck.name }}, a {{ deck.get_side_display }} game deck.{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
@@ -15,21 +14,13 @@
     <input type="text" name="name" value="{{ deck.name }}" class="form-control bg-dark text-light border-secondary" style="max-width:300px;">
     <button type="submit" class="btn btn-light btn-sm">Rename</button>
   </form>
+  <span class="badge {% if deck.side == 'D' %}bg-danger{% else %}bg-primary{% endif %} fs-6">{{ deck.get_side_display }}</span>
   <span id="card-count" class="badge bg-secondary fs-6">{{ total }}/60</span>
-  <div class="ms-auto d-flex gap-2">
-    <form method="post" action="{% url 'deck_toggle_public' deck.id %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-sm {% if deck.is_public %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
-        onclick="return confirm('{% if deck.is_public %}Are you sure you want to make this deck private? Anyone who saved it will no longer have access.{% else %}Make this deck public? Anyone with the link can view it.{% endif %}')">
-        {% if deck.is_public %}Make Private{% else %}Make Public{% endif %}
-      </button>
-    </form>
-    <a href="{% url 'deck_detail' deck.id %}" class="btn btn-outline-light btn-sm">View</a>
-  </div>
+  <a href="{% url 'game_deck_list' %}" class="btn btn-outline-light btn-sm ms-auto">Back to Decks</a>
 </div>
 
 <div class="row g-3" style="min-height: 70vh;">
-  <!-- Left: owned cards -->
+  <!-- Left: available cards (full pool, this deck's side only) -->
   <div class="col-12 col-lg-5">
     <div class="card bg-dark border-secondary h-100">
       <div class="card-body d-flex flex-column p-2">
@@ -57,39 +48,30 @@
               <option value="Weapon">Weapon</option>
             </select>
           </div>
-          <div class="col-auto">
-            <select id="cardSide" class="form-select form-select-sm bg-dark text-light border-secondary">
-              <option value="">All Sides</option>
-              <option value="Light Side">Light Side</option>
-              <option value="Dark Side">Dark Side</option>
-            </select>
-          </div>
         </div>
         <div style="overflow-y: auto; flex: 1; max-height: 65vh;">
           <table class="table table-dark table-hover table-sm mb-0">
-            <thead class="sticky-top top-0 table-dark"><tr><th>Name</th><th>Type</th><th>Side</th><th>Own</th><th></th></tr></thead>
+            <thead class="sticky-top top-0 table-dark"><tr><th>Name</th><th>Type</th><th>Set</th><th></th></tr></thead>
             <tbody id="available-body">
-              {% for oc in owned %}
-              <tr data-item-id="{{ oc.id }}"
-                  data-name="{{ oc.card.name|lower }}"
-                  data-type="{{ oc.card.get_card_type_display }}"
-                  data-side="{{ oc.card.get_side_display }}"
-                  data-card-name="{{ oc.card.name }}"
-                  data-max="{{ oc.copies }}">
-                <td>{{ oc.card.name }}</td>
-                <td>{{ oc.card.get_card_type_display }}</td>
-                <td>{{ oc.card.get_side_display }}</td>
-                <td>{{ oc.copies }}</td>
+              {% for card in available %}
+              <tr data-item-id="{{ card.id }}"
+                  data-name="{{ card.name|lower }}"
+                  data-type="{{ card.get_card_type_display }}"
+                  data-card-name="{{ card.name }}"
+                  data-card-set="{{ card.card_set.name }}">
+                <td>{{ card.name }}</td>
+                <td>{{ card.get_card_type_display }}</td>
+                <td>{{ card.card_set.name }}</td>
                 <td>
-                  {% if oc.id in in_deck_ids %}
-                  <button class="btn btn-sm btn-secondary btn-add-card" data-item-id="{{ oc.id }}" disabled>Added</button>
+                  {% if card.id in in_deck_ids %}
+                  <button class="btn btn-sm btn-secondary btn-add-card" data-item-id="{{ card.id }}" disabled>Added</button>
                   {% else %}
-                  <button class="btn btn-sm btn-outline-light btn-add-card" data-item-id="{{ oc.id }}">Add</button>
+                  <button class="btn btn-sm btn-outline-light btn-add-card" data-item-id="{{ card.id }}">Add</button>
                   {% endif %}
                 </td>
               </tr>
               {% empty %}
-              <tr><td colspan="5" class="text-secondary">No owned cards.</td></tr>
+              <tr><td colspan="4" class="text-secondary">No cards found.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -104,26 +86,25 @@
       <div class="card-body p-2">
         <div style="overflow-y: auto; max-height: 70vh;">
           <table class="table table-dark table-hover table-sm mb-0">
-            <thead class="sticky-top top-0 table-dark"><tr><th>Name</th><th>Type</th><th>Side</th><th>Qty</th><th></th></tr></thead>
+            <thead class="sticky-top top-0 table-dark"><tr><th>Name</th><th>Type</th><th>Qty</th><th></th></tr></thead>
             <tbody id="deck-body">
               {% for dc in deck_cards %}
-              <tr data-item-id="{{ dc.owned_card.id }}" data-side="{{ dc.owned_card.card.get_side_display }}">
-                <td>{{ dc.owned_card.card.name }}</td>
-                <td>{{ dc.owned_card.card.get_card_type_display }}</td>
-                <td>{{ dc.owned_card.card.get_side_display }}</td>
+              <tr data-item-id="{{ dc.card.id }}">
+                <td>{{ dc.card.name }}</td>
+                <td>{{ dc.card.get_card_type_display }}</td>
                 <td>
                   <div class="d-flex align-items-center gap-1">
-                    <button class="btn btn-sm btn-outline-secondary btn-qty" data-dir="-1" data-item-id="{{ dc.owned_card.id }}">-</button>
+                    <button class="btn btn-sm btn-outline-secondary btn-qty" data-dir="-1" data-item-id="{{ dc.card.id }}">-</button>
                     <span class="qty-val px-1">{{ dc.quantity }}</span>
-                    <button class="btn btn-sm btn-outline-secondary btn-qty" data-dir="1" data-item-id="{{ dc.owned_card.id }}">+</button>
+                    <button class="btn btn-sm btn-outline-secondary btn-qty" data-dir="1" data-item-id="{{ dc.card.id }}">+</button>
                   </div>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-danger btn-remove-card" data-item-id="{{ dc.owned_card.id }}">Remove</button>
+                  <button class="btn btn-sm btn-outline-danger btn-remove-card" data-item-id="{{ dc.card.id }}">Remove</button>
                 </td>
               </tr>
               {% empty %}
-              <tr id="empty-row"><td colspan="5" class="text-secondary">No cards yet. Add some from the left.</td></tr>
+              <tr id="empty-row"><td colspan="4" class="text-secondary">No cards yet. Add some from the left.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -138,15 +119,14 @@
 <script src="{% static 'swccgdb/js/deck_builder.js' %}"></script>
 <script>
 initDeckBuilder({
-  baseUrl: "/decks/",
+  baseUrl: "/play/decks/",
   deckId: "{{ deck.id }}",
-  idParam: "owned_card_id",
-  hasSideFilter: true,
-  emptyRowHtml: '<tr id="empty-row"><td colspan="5" class="text-secondary">No cards yet. Add some from the left.</td></tr>',
+  idParam: "card_id",
+  hasSideFilter: false,
+  emptyRowHtml: '<tr id="empty-row"><td colspan="4" class="text-secondary">No cards yet. Add some from the left.</td></tr>',
   buildRow: (itemId, row) => `
     <td>${row.dataset.cardName}</td>
     <td>${row.dataset.type}</td>
-    <td>${row.dataset.side}</td>
     <td>
       <div class="d-flex align-items-center gap-1">
         <button class="btn btn-sm btn-outline-secondary btn-qty" data-dir="-1" data-item-id="${itemId}">-</button>

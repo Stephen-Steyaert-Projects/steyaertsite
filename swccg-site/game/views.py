@@ -69,8 +69,8 @@ def room(request, code):
         raise Http404
     return render(request, "game/room.html", {
         "room": room,
-        "light_decks": _valid_decks(request.user, Card.Side.LIGHT),
-        "dark_decks": _valid_decks(request.user, Card.Side.DARK),
+        "light_decks": list(_valid_decks(request.user, Card.Side.LIGHT).values("id", "name")),
+        "dark_decks": list(_valid_decks(request.user, Card.Side.DARK).values("id", "name")),
     })
 
 

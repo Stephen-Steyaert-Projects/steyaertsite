@@ -6,9 +6,19 @@
 {% block twitter_title %}Room {{ room.code }} | SWCCG Database{% endblock %}
 {% block twitter_description %}Live SWCCG match.{% endblock %}
 
+{% block navbar %}
+<nav class="navbar bg-body-tertiary sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'index' %}">SWCCGDB</a>
+  </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 {{ room.code|json_script:"room-code" }}
 {{ request.user.id|json_script:"user-id" }}
+{{ light_decks|json_script:"light-decks" }}
+{{ dark_decks|json_script:"dark-decks" }}
 
 <div class="d-flex align-items-baseline gap-3 mb-4">
   <h1 class="mb-0">Room {{ room.code }}</h1>
@@ -16,16 +26,39 @@
 </div>
 
 <div id="connection-status" class="alert alert-warning">Connecting...</div>
+<div id="players-connected" class="text-secondary mb-3">—</div>
 
-<div class="card bg-dark border-secondary mb-4">
+<div id="waiting-panel" class="card bg-dark border-secondary mb-4 d-none">
+  <div class="card-body">
+    <p class="mb-0">Waiting for your opponent to join. Share the room code above with them.</p>
+  </div>
+</div>
+
+<div id="ready-panel" class="card bg-dark border-secondary mb-4 d-none">
+  <div class="card-body">
+    <h5 class="card-title">Game <span id="ready-game-number">1</span> — you're on the <span id="my-side">—</span></h5>
+    <div class="d-flex gap-2 align-items-center">
+      <select id="ready-deck-select" class="form-select bg-dark text-light border-secondary" style="max-width: 320px;"></select>
+      <button id="ready-btn" class="btn btn-primary">Ready</button>
+    </div>
+    <p id="ready-status" class="text-secondary mt-2 mb-0"></p>
+    <div id="ready-error" class="text-danger small mt-2"></div>
+    <a href="{% url 'game_deck_list' %}" target="_blank" class="btn btn-outline-light btn-sm mt-2">Manage Decks</a>
+  </div>
+</div>
+
+<div id="game-panel" class="card bg-dark border-secondary mb-4 d-none">
   <div class="card-body">
     <div class="row g-3">
+      <div class="col-sm-3"><strong>Game</strong><div id="game-number">—</div></div>
       <div class="col-sm-3"><strong>Turn</strong><div id="turn-number">—</div></div>
       <div class="col-sm-3"><strong>Phase</strong><div id="phase-name">—</div></div>
       <div class="col-sm-3"><strong>Active side</strong><div id="active-side">—</div></div>
-      <div class="col-sm-3"><strong>Players connected</strong><div id="players-connected">—</div></div>
     </div>
-    <button id="pass-phase-btn" class="btn btn-primary mt-3" disabled>Pass Phase</button>
+    <div class="d-flex gap-2 mt-3">
+      <button id="pass-phase-btn" class="btn btn-primary" disabled>Pass Phase</button>
+      <button id="rematch-btn" class="btn btn-outline-light">Play Again (swap sides)</button>
+    </div>
     <div id="phase-error" class="text-danger small mt-2"></div>
   </div>
 </div>
@@ -46,11 +79,22 @@
 <script>
   const roomCode = JSON.parse(document.getElementById('room-code').textContent);
   const userId = JSON.parse(document.getElementById('user-id').textContent);
+  const lightDecks = JSON.parse(document.getElementById('light-decks').textContent);
+  const darkDecks = JSON.parse(document.getElementById('dark-decks').textContent);
+  const SIDE_LABELS = { D: 'Dark Side', L: 'Light Side' };
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const socket = new WebSocket(`${protocol}//${window.location.host}/ws/game/${roomCode}/`);
 
   const statusEl = document.getElementById('connection-status');
+  const playersConnectedEl = document.getElementById('players-connected');
+  const waitingPanel = document.getElementById('waiting-panel');
+  const readyPanel = document.getElementById('ready-panel');
+  const gamePanel = document.getElementById('game-panel');
+  const readyDeckSelect = document.getElementById('ready-deck-select');
+  const readyBtn = document.getElementById('ready-btn');
+  const readyStatusEl = document.getElementById('ready-status');
+  const readyErrorEl = document.getElementById('ready-error');
   const passPhaseBtn = document.getElementById('pass-phase-btn');
   const phaseErrorEl = document.getElementById('phase-error');
   const chatLog = document.getElementById('chat-log');
@@ -70,13 +114,9 @@
     const data = JSON.parse(event.data);
 
     if (data.type === 'state') {
-      document.getElementById('turn-number').textContent = data.turn_number;
-      document.getElementById('phase-name').textContent = data.phase;
-      document.getElementById('active-side').textContent = data.active_side;
-      document.getElementById('players-connected').textContent = `${data.connected_user_ids.length} / 2`;
-      passPhaseBtn.disabled = data.active_user_id !== userId;
-      phaseErrorEl.textContent = '';
+      renderState(data);
     } else if (data.type === 'error') {
+      readyErrorEl.textContent = data.message;
       phaseErrorEl.textContent = data.message;
     } else if (data.type === 'chat') {
       const line = document.createElement('div');
@@ -86,8 +126,52 @@
     }
   });
 
+  function renderState(data) {
+    playersConnectedEl.textContent = `${data.connected_user_ids.length} / 2 players connected`;
+
+    waitingPanel.classList.toggle('d-none', data.status !== 'waiting_for_player');
+    readyPanel.classList.toggle('d-none', data.status !== 'awaiting_ready');
+    gamePanel.classList.toggle('d-none', data.status !== 'in_progress');
+
+    if (data.status === 'awaiting_ready') {
+      const mySide = data.side_by_user_id[String(userId)];
+      document.getElementById('ready-game-number').textContent = data.game_number;
+      document.getElementById('my-side').textContent = SIDE_LABELS[mySide] || '—';
+
+      const decks = mySide === 'D' ? darkDecks : lightDecks;
+      readyDeckSelect.innerHTML = decks.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+
+      const iAmReady = data.ready_user_ids.includes(userId);
+      readyBtn.disabled = iAmReady;
+      readyDeckSelect.disabled = iAmReady;
+      readyStatusEl.textContent = iAmReady
+        ? 'Waiting for your opponent to be ready...'
+        : `${data.ready_user_ids.length} / 2 players ready.`;
+    }
+
+    if (data.status === 'in_progress') {
+      document.getElementById('game-number').textContent = data.game_number;
+      document.getElementById('turn-number').textContent = data.turn_number;
+      document.getElementById('phase-name').textContent = data.phase;
+      document.getElementById('active-side').textContent = SIDE_LABELS[data.active_side] || '—';
+      passPhaseBtn.disabled = data.active_user_id !== userId;
+      phaseErrorEl.textContent = '';
+    }
+  }
+
+  readyBtn.addEventListener('click', () => {
+    readyErrorEl.textContent = '';
+    const deckId = readyDeckSelect.value;
+    if (!deckId) return;
+    socket.send(JSON.stringify({ type: 'ready', deck_id: deckId }));
+  });
+
   passPhaseBtn.addEventListener('click', () => {
     socket.send(JSON.stringify({ type: 'pass_phase' }));
+  });
+
+  document.getElementById('rematch-btn').addEventListener('click', () => {
+    socket.send(JSON.stringify({ type: 'rematch' }));
   });
 
   document.getElementById('chat-form').addEventListener('submit', (e) => {
