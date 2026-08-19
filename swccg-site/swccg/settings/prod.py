@@ -9,6 +9,15 @@ EMAIL_PORT = int(get_secret("EMAIL_PORT", 25))
 EMAIL_USE_TLS = False
 DEFAULT_FROM_EMAIL = get_secret("DEFAULT_FROM_EMAIL", "noreply@swccg.steyaert.xyz")
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(get_secret("REDIS_HOST", "redis"), int(get_secret("REDIS_PORT", 6379)))],
+        },
+    },
+}
+
 DEBUG = False
 raw_hosts = get_secret("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(",") if host.strip()]

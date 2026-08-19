@@ -8,5 +8,31 @@
 
 {% block content %}
 <h1>Play</h1>
-<p class="text-secondary">The online game is coming soon.</p>
+<p class="text-secondary">Create a room and share the code with your opponent, or join an existing one.</p>
+
+<div class="row g-4 mt-2" style="max-width: 640px;">
+  <div class="col-md-6">
+    <div class="card bg-dark border-secondary h-100">
+      <div class="card-body">
+        <h5 class="card-title">New game</h5>
+        <form method="post" action="{% url 'game_create_room' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">Create room</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card bg-dark border-secondary h-100">
+      <div class="card-body">
+        <h5 class="card-title">Join a game</h5>
+        <form method="post" action="{% url 'game_join_room' %}" class="d-flex gap-2">
+          {% csrf_token %}
+          <input type="text" name="code" class="form-control" placeholder="Room code" maxlength="6" autocapitalize="characters">
+          <button type="submit" class="btn btn-outline-light">Join</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

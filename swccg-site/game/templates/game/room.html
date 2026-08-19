@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Room {{ room.code }}{% endblock %}
+{% block og_title %}Room {{ room.code }} | SWCCG Database{% endblock %}
+{% block og_description %}Live SWCCG match.{% endblock %}
+{% block twitter_title %}Room {{ room.code }} | SWCCG Database{% endblock %}
+{% block twitter_description %}Live SWCCG match.{% endblock %}
+
+{% block content %}
+{{ room.code|json_script:"room-code" }}
+{{ request.user.id|json_script:"user-id" }}
+
+<div class="d-flex align-items-baseline gap-3 mb-4">
+  <h1 class="mb-0">Room {{ room.code }}</h1>
+  <span class="text-secondary">Share this code with your opponent</span>
+</div>
+
+<div id="connection-status" class="alert alert-warning">Connecting...</div>
+
+<div class="card bg-dark border-secondary mb-4">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-sm-3"><strong>Turn</strong><div id="turn-number">—</div></div>
+      <div class="col-sm-3"><strong>Phase</strong><div id="phase-name">—</div></div>
+      <div class="col-sm-3"><strong>Active side</strong><div id="active-side">—</div></div>
+      <div class="col-sm-3"><strong>Players connected</strong><div id="players-connected">—</div></div>
+    </div>
+    <button id="pass-phase-btn" class="btn btn-primary mt-3" disabled>Pass Phase</button>
+    <div id="phase-error" class="text-danger small mt-2"></div>
+  </div>
+</div>
+
+<div class="card bg-dark border-secondary">
+  <div class="card-body">
+    <h5 class="card-title">Chat</h5>
+    <div id="chat-log" class="border border-secondary rounded p-2 mb-2" style="height: 200px; overflow-y: auto;"></div>
+    <form id="chat-form" class="d-flex gap-2">
+      <input type="text" id="chat-input" class="form-control" placeholder="Say something..." maxlength="500">
+      <button type="submit" class="btn btn-outline-light">Send</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const roomCode = JSON.parse(document.getElementById('room-code').textContent);
+  const userId = JSON.parse(document.getElementById('user-id').textContent);
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new WebSocket(`${protocol}//${window.location.host}/ws/game/${roomCode}/`);
+
+  const statusEl = document.getElementById('connection-status');
+  const passPhaseBtn = document.getElementById('pass-phase-btn');
+  const phaseErrorEl = document.getElementById('phase-error');
+  const chatLog = document.getElementById('chat-log');
+
+  socket.addEventListener('open', () => {
+    statusEl.className = 'alert alert-success';
+    statusEl.textContent = 'Connected';
+  });
+
+  socket.addEventListener('close', () => {
+    statusEl.className = 'alert alert-danger';
+    statusEl.textContent = 'Disconnected';
+    passPhaseBtn.disabled = true;
+  });
+
+  socket.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === 'state') {
+      document.getElementById('turn-number').textContent = data.turn_number;
+      document.getElementById('phase-name').textContent = data.phase;
+      document.getElementById('active-side').textContent = data.active_side;
+      document.getElementById('players-connected').textContent = `${data.connected_user_ids.length} / 2`;
+      passPhaseBtn.disabled = data.active_user_id !== userId;
+      phaseErrorEl.textContent = '';
+    } else if (data.type === 'error') {
+      phaseErrorEl.textContent = data.message;
+    } else if (data.type === 'chat') {
+      const line = document.createElement('div');
+      line.textContent = `${data.username}: ${data.text}`;
+      chatLog.appendChild(line);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+  });
+
+  passPhaseBtn.addEventListener('click', () => {
+    socket.send(JSON.stringify({ type: 'pass_phase' }));
+  });
+
+  document.getElementById('chat-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    if (!input.value.trim()) return;
+    socket.send(JSON.stringify({ type: 'chat', text: input.value.trim() }));
+    input.value = '';
+  });
+</script>
+{% endblock %}

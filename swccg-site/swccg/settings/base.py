@@ -8,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -15,6 +16,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "channels",
+    "rest_framework",
     "register",
     "swccgdb",
     "game",
@@ -50,6 +53,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "swccg.wsgi.application"
+ASGI_APPLICATION = "swccg.asgi.application"
 
 
 PASSWORD_RESET_TIMEOUT = 60 * 10
