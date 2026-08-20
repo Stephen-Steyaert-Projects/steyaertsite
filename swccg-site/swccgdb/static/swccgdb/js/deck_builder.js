@@ -35,6 +35,7 @@ function initDeckBuilder(config) {
     const el = document.getElementById('card-count');
     el.textContent = total + '/60';
     el.className = 'badge fs-6 ' + (total >= 60 ? 'bg-success' : total >= 50 ? 'bg-warning text-dark' : 'bg-secondary');
+    if (config.onCountChange) config.onCountChange(total);
   }
 
   function removeEmptyRow() {
@@ -95,6 +96,7 @@ function initDeckBuilder(config) {
 
       const tr = document.createElement('tr');
       tr.dataset.itemId = itemId;
+      tr.dataset.type = row.dataset.type;
       if (config.hasSideFilter) {
         tr.dataset.side = row.dataset.side;
       }

@@ -39,8 +39,12 @@ class GameDeck(models.Model):
         return self.deck_cards.aggregate(total=models.Sum('quantity'))['total'] or 0
 
     @property
+    def has_location(self):
+        return self.deck_cards.filter(card__card_type=Card.CardType.LOCATION).exists()
+
+    @property
     def is_valid(self):
-        return self.card_count == 60
+        return self.card_count == 60 and self.has_location
 
     def __str__(self):
         return f"{self.name} ({self.user})"

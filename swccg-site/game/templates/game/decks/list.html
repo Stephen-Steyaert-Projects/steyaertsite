@@ -23,7 +23,12 @@
           <h5 class="card-title mb-0 me-2">{{ deck.name }}</h5>
           <span class="badge {% if deck.side == 'D' %}bg-danger{% else %}bg-primary{% endif %} ms-auto">{{ deck.get_side_display }}</span>
         </div>
-        <p class="{% if deck.count == 60 %}text-success{% else %}text-secondary{% endif %} mb-3">{{ deck.count|default:0 }}/60 cards</p>
+        <p class="{% if deck.is_valid %}text-success{% else %}text-secondary{% endif %} mb-1">{{ deck.count|default:0 }}/60 cards</p>
+        {% if deck.count == 60 and not deck.has_location %}
+        <p class="text-warning small mb-3">Needs at least 1 Location card</p>
+        {% else %}
+        <div class="mb-3"></div>
+        {% endif %}
         <div class="mt-auto d-flex gap-2">
           <a href="{% url 'game_deck_edit' deck.id %}" class="btn btn-outline-light btn-sm">Edit</a>
           <form method="post" action="{% url 'game_deck_delete' deck.id %}" class="ms-auto" onsubmit="return confirm('Delete {{ deck.name }}?')">

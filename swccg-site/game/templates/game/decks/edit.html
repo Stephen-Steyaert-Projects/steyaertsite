@@ -18,6 +18,7 @@
   <span id="card-count" class="badge bg-secondary fs-6">{{ total }}/60</span>
   <a href="{% url 'game_deck_list' %}" class="btn btn-outline-light btn-sm ms-auto">Back to Decks</a>
 </div>
+<div id="location-warning" class="text-warning small mb-3 d-none">Needs at least 1 Location card.</div>
 
 <div class="row g-3" style="min-height: 70vh;">
   <!-- Left: available cards (full pool, this deck's side only) -->
@@ -89,7 +90,7 @@
             <thead class="sticky-top top-0 table-dark"><tr><th>Name</th><th>Type</th><th>Qty</th><th></th></tr></thead>
             <tbody id="deck-body">
               {% for dc in deck_cards %}
-              <tr data-item-id="{{ dc.card.id }}">
+              <tr data-item-id="{{ dc.card.id }}" data-type="{{ dc.card.get_card_type_display }}">
                 <td>{{ dc.card.name }}</td>
                 <td>{{ dc.card.get_card_type_display }}</td>
                 <td>
@@ -118,11 +119,17 @@
 {% block scripts %}
 <script src="{% static 'swccgdb/js/deck_builder.js' %}"></script>
 <script>
+function refreshLocationWarning(total) {
+  const hasLocation = !!document.querySelector('#deck-body tr[data-type="Location"]');
+  document.getElementById('location-warning').classList.toggle('d-none', hasLocation || total < 60);
+}
+
 initDeckBuilder({
   baseUrl: "/play/decks/",
   deckId: "{{ deck.id }}",
   idParam: "card_id",
   hasSideFilter: false,
+  onCountChange: refreshLocationWarning,
   emptyRowHtml: '<tr id="empty-row"><td colspan="4" class="text-secondary">No cards yet. Add some from the left.</td></tr>',
   buildRow: (itemId, row) => `
     <td>${row.dataset.cardName}</td>
@@ -136,5 +143,6 @@ initDeckBuilder({
     </td>
     <td><button class="btn btn-sm btn-outline-danger btn-remove-card" data-item-id="${itemId}">Remove</button></td>`,
 });
+refreshLocationWarning({{ total }});
 </script>
 {% endblock %}

@@ -1,6 +1,8 @@
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from swccgdb.models import Card
+
 from .game_state import RoomState
 from .models import GameDeck, Room
 from .state_store import get_store
@@ -62,7 +64,23 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             if deck is None:
                 await self.send_json({"type": "error", "message": "Deck not found."})
                 return
-            await self.apply(lambda state, room: state.mark_ready(room, self.user.id, deck))
+            ok = await self.apply(lambda state, room: state.mark_ready(room, self.user.id, deck))
+            if ok:
+                locations = await self.get_deck_locations(deck.id)
+                await self.send_json({"type": "location_options", "locations": locations})
+        elif message_type == "choose_starting_location":
+            room = await self.get_room(self.room_code)
+            state = await self.load_state(room)
+            role = room.role_for_user_id(self.user.id)
+            deck_id = state.ready_decks.get(role) if role else None
+            if not deck_id:
+                await self.send_json({"type": "error", "message": "Pick your deck first."})
+                return
+            card = await self.get_deck_location_card(deck_id, content.get("location_card_id"))
+            if card is None:
+                await self.send_json({"type": "error", "message": "Invalid location for your deck."})
+                return
+            await self.apply(lambda state, room: state.choose_starting_location(room, self.user.id, card))
         elif message_type == "pass_phase":
             await self.apply(lambda state, room: state.pass_phase(room, self.user.id))
         elif message_type == "resign":
@@ -84,14 +102,15 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
                 )
 
     async def apply(self, mutate):
-        """Loads fresh state/room, applies a mutation, and broadcasts — or sends back a PermissionError."""
+        """Loads fresh state/room, applies a mutation, and broadcasts — or sends back a PermissionError.
+        Returns True on success, False if the mutation was rejected."""
         room = await self.get_room(self.room_code)
         state = await self.load_state(room)
         try:
             mutate(state, room)
         except PermissionError as exc:
             await self.send_json({"type": "error", "message": str(exc)})
-            return
+            return False
 
         idle_role = state.check_timeout()
         if idle_role:
@@ -103,6 +122,7 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             room = await self.kick_idle_player(room, state, idle_role, reason)
 
         await self.save_and_broadcast(room, state)
+        return True
 
     async def kick_idle_player(self, room, state, idle_role, reason):
         """Frees the idle player's room slot (promoting player_two to creator if needed) and closes their socket."""
@@ -208,6 +228,22 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         if not deck_id:
             return None
         return GameDeck.objects.filter(id=deck_id).first()
+
+    @sync_to_async
+    def get_deck_locations(self, deck_id):
+        return list(
+            Card.objects.filter(game_deck_cards__game_deck_id=deck_id, card_type=Card.CardType.LOCATION)
+            .values("id", "name")
+            .order_by("name")
+        )
+
+    @sync_to_async
+    def get_deck_location_card(self, deck_id, card_id):
+        if not card_id:
+            return None
+        return Card.objects.filter(
+            id=card_id, card_type=Card.CardType.LOCATION, game_deck_cards__game_deck_id=deck_id,
+        ).first()
 
     @sync_to_async
     def promote_player_two(self, room):

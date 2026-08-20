@@ -35,7 +35,8 @@ PHASE_ORDER = [Phase.ACTIVATE, Phase.CONTROL, Phase.DEPLOY, Phase.BATTLE, Phase.
 class RoomState:
     game_number: int = 1
     side_by_role: dict = field(default_factory=dict)  # role -> Card.Side value, randomized per game
-    ready_decks: dict = field(default_factory=dict)   # role -> GameDeck id, chosen fresh each game
+    ready_decks: dict = field(default_factory=dict)        # role -> GameDeck id, chosen fresh each game
+    starting_locations: dict = field(default_factory=dict)  # role -> Card id, chosen fresh each game
     phase_index: int = 0
     active_side: str = None
     turn_number: int = 1
@@ -50,9 +51,12 @@ class RoomState:
             return 'game_over'
         if not self.side_by_role:
             return 'waiting_for_player'
-        if len(self.ready_decks) < 2:
+        if not self._both_fully_ready():
             return 'awaiting_ready'
         return 'in_progress'
+
+    def _both_fully_ready(self):
+        return all(r in self.ready_decks and r in self.starting_locations for r in ROLES)
 
     def ensure_sides(self, room):
         """Randomly assigns Dark/Light once both players are in the room, for the current game."""
@@ -79,10 +83,27 @@ class RoomState:
         if deck.side != expected_side:
             raise PermissionError(f"You were assigned {Card.Side(expected_side).label}. Pick a deck of that side.")
         if not deck.is_valid:
-            raise PermissionError("That deck isn't complete (needs exactly 60 cards).")
+            raise PermissionError("That deck isn't complete (needs exactly 60 cards, including at least 1 Location).")
 
         self.ready_decks[role] = deck.id
-        if len(self.ready_decks) == len(ROLES):
+        self._maybe_start_game()
+
+    def choose_starting_location(self, room, user_id, card):
+        role = room.role_for_user_id(user_id)
+        if role is None:
+            raise PermissionError("You're not a player in this room.")
+        if role not in self.ready_decks:
+            raise PermissionError("Pick your deck first.")
+        if card.card_type != Card.CardType.LOCATION:
+            raise PermissionError("That's not a Location card.")
+        if card.side != self.side_by_role[role]:
+            raise PermissionError("That location isn't on your side.")
+
+        self.starting_locations[role] = card.id
+        self._maybe_start_game()
+
+    def _maybe_start_game(self):
+        if self._both_fully_ready():
             self.phase_index = 0
             self.active_side = Card.Side.DARK
             self.turn_number = 1
@@ -137,11 +158,13 @@ class RoomState:
             if self.awaiting_ready_since is None or time.time() - self.awaiting_ready_since < IDLE_TIMEOUT_SECONDS:
                 return None
             # Only act when it's unambiguous: exactly one side is actually waiting on the other.
-            if len(self.ready_decks) != 1:
+            fully_ready_roles = [r for r in ROLES if r in self.ready_decks and r in self.starting_locations]
+            if len(fully_ready_roles) != 1:
                 return None
-            idle_role = next(r for r in ROLES if r not in self.ready_decks)
+            idle_role = next(r for r in ROLES if r not in fully_ready_roles)
             self.side_by_role = {}
             self.ready_decks = {}
+            self.starting_locations = {}
             self.awaiting_ready_since = None
             return idle_role
 
@@ -157,6 +180,7 @@ class RoomState:
         self.game_number += 1
         self.side_by_role = {role: side for role, side in zip(ROLES, reversed(list(self.side_by_role.values())))}
         self.ready_decks = {}
+        self.starting_locations = {}
         self.ended_by_role = None
         self.phase_index = 0
         self.active_side = None
@@ -181,6 +205,7 @@ class RoomState:
             "active_user_id": self.active_user_id(room),
             "side_by_user_id": {room.user_id_for_role(role): side for role, side in self.side_by_role.items()},
             "ready_user_ids": [room.user_id_for_role(role) for role in self.ready_decks],
+            "location_chosen_user_ids": [room.user_id_for_role(role) for role in self.starting_locations],
             "connected_user_ids": sorted(self.connected_channels.keys()),
             "resigned_user_id": resigned_user_id,
             "winner_user_id": winner_user_id,
@@ -193,6 +218,7 @@ class RoomState:
             "game_number": self.game_number,
             "side_by_role": self.side_by_role,
             "ready_decks": {role: str(deck_id) for role, deck_id in self.ready_decks.items()},
+            "starting_locations": self.starting_locations,
             "phase_index": self.phase_index,
             "active_side": self.active_side,
             "turn_number": self.turn_number,
@@ -209,6 +235,7 @@ class RoomState:
             game_number=data["game_number"],
             side_by_role=data["side_by_role"],
             ready_decks=data["ready_decks"],
+            starting_locations=data.get("starting_locations", {}),
             phase_index=data["phase_index"],
             active_side=data["active_side"],
             turn_number=data["turn_number"],
