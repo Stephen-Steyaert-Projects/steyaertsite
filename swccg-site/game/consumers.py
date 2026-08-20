@@ -1,11 +1,13 @@
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-from swccgdb.models import Card
+from swccgdb.models import Card, CardText
 
-from .game_state import RoomState
-from .models import GameDeck, Room
+from .game_state import ROLES, RoomState
+from .models import GameDeck, GameDeckCard, Room
 from .state_store import get_store
+
+FORCE_ICON_STATS_KEY = {Card.Side.DARK: 'darkSideIcons', Card.Side.LIGHT: 'lightSideIcons'}
 
 
 class RoomConsumer(AsyncJsonWebsocketConsumer):
@@ -64,7 +66,8 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             if deck is None:
                 await self.send_json({"type": "error", "message": "Deck not found."})
                 return
-            ok = await self.apply(lambda state, room: state.mark_ready(room, self.user.id, deck))
+            deck_is_valid = await self.get_deck_is_valid(deck)
+            ok = await self.apply(lambda state, room: state.mark_ready(room, self.user.id, deck, deck_is_valid))
             if ok:
                 locations = await self.get_deck_locations(deck.id)
                 await self.send_json({"type": "location_options", "locations": locations})
@@ -83,6 +86,14 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             await self.apply(lambda state, room: state.choose_starting_location(room, self.user.id, card))
         elif message_type == "pass_phase":
             await self.apply(lambda state, room: state.pass_phase(room, self.user.id))
+        elif message_type == "activate_force":
+            count = content.get("count")
+            await self.apply(lambda state, room: state.activate_force(room, self.user.id, count))
+        elif message_type == "draw_cards":
+            count = content.get("count")
+            await self.apply(lambda state, room: state.draw_cards(room, self.user.id, count))
+        elif message_type == "end_turn":
+            await self.apply(lambda state, room: state.end_turn(room, self.user.id))
         elif message_type == "resign":
             await self.apply(lambda state, room: state.resign(room, self.user.id))
         elif message_type == "rematch":
@@ -112,6 +123,12 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json({"type": "error", "message": str(exc)})
             return False
 
+        if state.status == 'in_progress' and not state.cards_dealt:
+            role_cards, role_force_icons = await self.get_role_cards_and_icons(state)
+            state.deal_cards(role_cards, role_force_icons)
+
+        state.check_life_force_depletion()
+
         idle_role = state.check_timeout()
         if idle_role:
             reason = (
@@ -122,7 +139,21 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             room = await self.kick_idle_player(room, state, idle_role, reason)
 
         await self.save_and_broadcast(room, state)
+        if state.cards_dealt:
+            await self.send_hands(room, state)
         return True
+
+    async def send_hands(self, room, state):
+        """Hand contents are private — sent individually to each player's own connection(s), never group_send."""
+        for role in ROLES:
+            user_id = room.user_id_for_role(role)
+            channel_name = state.connected_channels.get(user_id)
+            if channel_name:
+                cards = await self.get_hand_cards(state.hand.get(role, []))
+                await self.channel_layer.send(channel_name, {"type": "your.hand", "cards": cards})
+
+    async def your_hand(self, event):
+        await self.send_json({"type": "your_hand", "cards": event["cards"]})
 
     async def kick_idle_player(self, room, state, idle_role, reason):
         """Frees the idle player's room slot (promoting player_two to creator if needed) and closes their socket."""
@@ -230,6 +261,10 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         return GameDeck.objects.filter(id=deck_id).first()
 
     @sync_to_async
+    def get_deck_is_valid(self, deck):
+        return deck.is_valid
+
+    @sync_to_async
     def get_deck_locations(self, deck_id):
         return list(
             Card.objects.filter(game_deck_cards__game_deck_id=deck_id, card_type=Card.CardType.LOCATION)
@@ -244,6 +279,35 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         return Card.objects.filter(
             id=card_id, card_type=Card.CardType.LOCATION, game_deck_cards__game_deck_id=deck_id,
         ).first()
+
+    @sync_to_async
+    def get_role_cards_and_icons(self, state):
+        role_cards = {}
+        role_force_icons = {}
+        for role in ROLES:
+            deck_id = state.ready_decks[role]
+            ids = []
+            for row in GameDeckCard.objects.filter(game_deck_id=deck_id).values("card_id", "quantity"):
+                ids.extend([row["card_id"]] * row["quantity"])
+            role_cards[role] = ids
+
+            side = state.side_by_role[role]
+            stats_key = FORCE_ICON_STATS_KEY[side]
+            location_text = CardText.objects.filter(card_id=state.starting_locations[role]).first()
+            role_force_icons[role] = (location_text.stats.get(stats_key, 0) if location_text else 0)
+        return role_cards, role_force_icons
+
+    @sync_to_async
+    def get_hand_cards(self, card_ids):
+        cards_by_id = {
+            c["id"]: c for c in Card.objects.filter(id__in=card_ids).values(
+                "id", "name", "text__image_url",
+            )
+        }
+        return [
+            {"id": cid, "name": cards_by_id[cid]["name"], "image_url": cards_by_id[cid]["text__image_url"] or ""}
+            for cid in card_ids if cid in cards_by_id
+        ]
 
     @sync_to_async
     def promote_player_two(self, room):
