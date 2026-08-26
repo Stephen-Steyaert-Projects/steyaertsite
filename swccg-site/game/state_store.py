@@ -4,6 +4,7 @@ correctness across multiple worker processes, and gives idle-room cleanup for fr
 TTL). Falls back to an in-memory dict in dev, matching CHANNEL_LAYERS' dev/prod split —
 dev only ever runs a single process, so that's safe there.
 """
+import asyncio
 from abc import ABC, abstractmethod
 
 from django.conf import settings
@@ -12,6 +13,8 @@ from .game_state import RoomState
 
 IDLE_TTL_SECONDS = 60 * 30  # drop room state after 30 minutes of no activity
 KEY_PREFIX = "swccg:room:"
+LOCK_TIMEOUT_SECONDS = 10  # Redis lock auto-expiry, in case a worker dies mid-hold
+LOCK_BLOCKING_TIMEOUT_SECONDS = 5  # how long to wait acquiring before giving up
 
 
 class RoomStateStore(ABC):
@@ -27,10 +30,20 @@ class RoomStateStore(ABC):
     async def delete(self, room_code):
         ...
 
+    @abstractmethod
+    def lock(self, room_code):
+        """Returns an async context manager serializing a room's load-mutate-save
+        cycle. Without this, two actions on the same room landing close together (e.g.
+        a reconnect racing a real game action) can interleave their load/save calls
+        and silently clobber each other's changes — including connected_channels,
+        which is how send_hands() knows where to deliver a private hand."""
+        ...
+
 
 class InMemoryRoomStateStore(RoomStateStore):
     def __init__(self):
         self._states = {}
+        self._locks = {}
 
     async def get(self, room_code):
         return self._states.get(room_code)
@@ -40,6 +53,16 @@ class InMemoryRoomStateStore(RoomStateStore):
 
     async def delete(self, room_code):
         self._states.pop(room_code, None)
+
+    def lock(self, room_code):
+        # Only guards this one process — correct for dev, which never runs more than
+        # one. Never cleaned up (a Lock per room code that's ever existed stays in
+        # memory), but each one is tiny, so that's fine at this scale.
+        lock = self._locks.get(room_code)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[room_code] = lock
+        return lock
 
 
 class RedisRoomStateStore(RoomStateStore):
@@ -60,6 +83,16 @@ class RedisRoomStateStore(RoomStateStore):
 
     async def delete(self, room_code):
         await self._client.delete(self._key(room_code))
+
+    def lock(self, room_code):
+        # A real distributed lock — Redis is shared across every worker process, so
+        # this closes the gap the in-memory version can't: two of a room's connections
+        # landing on different prod workers still can't race each other.
+        return self._client.lock(
+            f"{KEY_PREFIX}lock:{room_code}",
+            timeout=LOCK_TIMEOUT_SECONDS,
+            blocking_timeout=LOCK_BLOCKING_TIMEOUT_SECONDS,
+        )
 
 
 _store = None

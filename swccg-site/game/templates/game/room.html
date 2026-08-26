@@ -15,131 +15,40 @@
 </nav>
 {% endblock %}
 
+{% block metaLinks %}
+<link rel="stylesheet" href="{% static 'game/css/room.css' %}">
+{% endblock %}
+
 {% block content %}
 {{ room.code|json_script:"room-code" }}
 {{ request.user.id|json_script:"user-id" }}
 {{ light_decks|json_script:"light-decks" }}
 {{ dark_decks|json_script:"dark-decks" }}
 
-<div class="d-flex align-items-baseline gap-3 mb-4">
-  <h1 class="mb-0">Room {{ room.code }}</h1>
-  <span class="text-secondary">Share this code with your opponent</span>
+{% include 'game/components/header_bar.html' %}
+{% include 'game/components/waiting_panel.html' %}
+{% include 'game/components/ready_panel.html' %}
+
+<div id="top-center-stack">
+  <div class="hand-row">
+    {% include 'game/components/opponent_hand_overlay.html' %}
+    {% include 'game/components/pile_cluster.html' with prefix="opp" flip_used=True %}
+  </div>
+  {% include 'game/components/status_overlay.html' %}
 </div>
 
-<div id="connection-status" class="alert alert-warning">Connecting...</div>
-<div class="d-flex align-items-center gap-2 mb-3">
-  <span id="players-connected" class="text-secondary">—</span>
-  <div class="ms-auto d-flex gap-2">
-    <button id="close-room-btn" class="btn btn-outline-danger btn-sm d-none" data-bs-toggle="modal" data-bs-target="#close-room-modal">Close Room</button>
-    <button id="leave-room-btn" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#leave-room-modal">Leave Room</button>
+<div id="bottom-center-stack">
+  <div class="hand-row">
+    {% include 'game/components/pile_cluster.html' with prefix="my" reverse_row=True %}
+    {% include 'game/components/hand_overlay.html' %}
   </div>
+  {% include 'game/components/force_overlay.html' %}
 </div>
 
-<div id="waiting-panel" class="card bg-dark border-secondary mb-4 d-none">
-  <div class="card-body">
-    <p class="mb-0">Waiting for your opponent to join. Share the room code above with them.</p>
-  </div>
-</div>
+{% include 'game/components/turn_controls_overlay.html' %}
+{% include 'game/components/chat_panel.html' %}
 
-<div id="ready-panel" class="card bg-dark border-secondary mb-4 d-none">
-  <div class="card-body">
-    <h5 class="card-title">Game <span id="ready-game-number">1</span> — you're on the <span id="my-side">—</span></h5>
-    <div class="d-flex gap-2 align-items-center">
-      <select id="ready-deck-select" class="form-select bg-dark text-light border-secondary" style="max-width: 320px;"></select>
-      <button id="ready-btn" class="btn btn-primary">Ready</button>
-    </div>
-    <div id="location-select-row" class="d-flex gap-2 align-items-center mt-3 d-none">
-      <select id="location-select" class="form-select bg-dark text-light border-secondary" style="max-width: 320px;"></select>
-      <button id="confirm-location-btn" class="btn btn-primary">Confirm Starting Location</button>
-    </div>
-    <p id="ready-status" class="text-secondary mt-2 mb-0"></p>
-    <div id="ready-error" class="text-danger small mt-2"></div>
-    <a href="{% url 'game_deck_list' %}" target="_blank" class="btn btn-outline-light btn-sm mt-2">Manage Decks</a>
-  </div>
-</div>
-
-<div id="game-panel" class="card bg-dark border-secondary mb-4 d-none">
-  <div class="card-body">
-    <div id="game-result-banner" class="alert mt-0 mb-3 d-none"></div>
-    <div class="row g-3">
-      <div class="col-sm-3"><strong>Game</strong><div id="game-number">—</div></div>
-      <div class="col-sm-3"><strong>Turn</strong><div id="turn-number">—</div></div>
-      <div class="col-sm-3"><strong>Phase</strong><div id="phase-name">—</div></div>
-      <div class="col-sm-3"><strong>Active side</strong><div id="active-side">—</div></div>
-    </div>
-    <div class="d-flex gap-2 mt-3">
-      <button id="pass-phase-btn" class="btn btn-primary" disabled>Pass Phase</button>
-      <button id="resign-btn" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#resign-modal">Resign</button>
-      <button id="rematch-btn" class="btn btn-outline-light" disabled>Play Again (swap sides)</button>
-    </div>
-    <div id="phase-error" class="text-danger small mt-2"></div>
-  </div>
-</div>
-
-<div class="modal fade" id="resign-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content bg-dark text-light border-secondary">
-      <div class="modal-header border-secondary">
-        <h5 class="modal-title">Resign this game?</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Your opponent will win the game. You can start a new one afterward.
-      </div>
-      <div class="modal-footer border-secondary">
-        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" id="confirm-resign-btn" class="btn btn-danger" data-bs-dismiss="modal">Resign</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="leave-room-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content bg-dark text-light border-secondary">
-      <div class="modal-header border-secondary">
-        <h5 class="modal-title">Leave this room?</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="leave-room-body">
-        If a game is in progress, leaving counts as resigning.
-      </div>
-      <div class="modal-footer border-secondary">
-        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" id="confirm-leave-btn" class="btn btn-danger" data-bs-dismiss="modal">Leave</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="close-room-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content bg-dark text-light border-secondary">
-      <div class="modal-header border-secondary">
-        <h5 class="modal-title">Close this room?</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        This permanently closes the room for both players. The room code will no longer work.
-      </div>
-      <div class="modal-footer border-secondary">
-        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" id="confirm-close-room-btn" class="btn btn-danger" data-bs-dismiss="modal">Close Room</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card bg-dark border-secondary">
-  <div class="card-body">
-    <h5 class="card-title">Chat</h5>
-    <div id="chat-log" class="border border-secondary rounded p-2 mb-2" style="height: 200px; overflow-y: auto;"></div>
-    <form id="chat-form" class="d-flex gap-2">
-      <input type="text" id="chat-input" class="form-control" placeholder="Say something..." maxlength="500">
-      <button type="submit" class="btn btn-outline-light">Send</button>
-    </form>
-  </div>
-</div>
+{% include 'game/components/modals.html' %}
 {% endblock %}
 
 {% block scripts %}

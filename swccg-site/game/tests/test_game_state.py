@@ -132,56 +132,62 @@ class TestDrawCards:
         with pytest.raises(PermissionError):
             state.draw_cards(room, room.created_by_id, 0)
 
-
-class TestPassPhaseAndEndTurn:
-    def test_pass_phase_advances_through_activate_to_draw(self):
+    def test_rejects_when_not_your_turn(self):
         room = RoomFactory()
         state = deal(make_ready_state(room))
-        for _ in range(len(PHASE_ORDER) - 1):
+        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
+        with pytest.raises(PermissionError):
+            state.draw_cards(room, room.player_two_id, 0)
+
+    def test_auto_recirculates_used_pile_beneath_reserve_preserving_order(self):
+        """Drawing ends the turn automatically — no separate recycle/end-turn step,
+        since there's no card-ability engine yet that would need a pause here."""
+        room = RoomFactory()
+        state = deal(make_ready_state(room))
+        state.used_pile['creator'] = [11, 22, 33]
+        state.reserve_deck['creator'] = [1, 2, 3]
+        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
+        state.draw_cards(room, room.created_by_id, 0)
+        assert state.reserve_deck['creator'] == [11, 22, 33, 1, 2, 3]
+        assert state.used_pile['creator'] == []
+
+    def test_auto_flips_active_side_and_resets_phase(self):
+        room = RoomFactory()
+        state = deal(make_ready_state(room))
+        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
+        state.draw_cards(room, room.created_by_id, 0)
+        assert state.active_side == Card.Side.LIGHT
+        assert state.phase_index == 0
+        assert state.turn_number == 2
+
+
+class TestActivateForceAutoAdvances:
+    def test_activate_force_advances_phase_to_control(self):
+        """Activating (even 0) is the Activate phase's only action — it advances the
+        phase automatically, same rationale as draw_cards ending the turn automatically."""
+        room = RoomFactory()
+        state = deal(make_ready_state(room))
+        state.activate_force(room, room.created_by_id, 0)
+        assert PHASE_ORDER[state.phase_index] == Phase.CONTROL
+
+
+class TestPassPhase:
+    def test_pass_phase_advances_through_control_to_draw(self):
+        room = RoomFactory()
+        state = deal(make_ready_state(room))
+        state.phase_index = PHASE_ORDER.index(Phase.CONTROL)
+        for _ in range(len(PHASE_ORDER) - 1 - PHASE_ORDER.index(Phase.CONTROL)):
             state.pass_phase(room, room.created_by_id)
         assert PHASE_ORDER[state.phase_index] == Phase.DRAW
 
     def test_pass_phase_no_longer_wraps_the_turn(self):
         room = RoomFactory()
         state = deal(make_ready_state(room))
-        for _ in range(len(PHASE_ORDER) - 1):
-            state.pass_phase(room, room.created_by_id)
+        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
         with pytest.raises(PermissionError):
             state.pass_phase(room, room.created_by_id)
         assert state.turn_number == 1
         assert state.active_side == Card.Side.DARK
-
-    def test_end_turn_recirculates_used_pile_beneath_reserve_preserving_order(self):
-        room = RoomFactory()
-        state = deal(make_ready_state(room))
-        state.used_pile['creator'] = [11, 22, 33]
-        state.reserve_deck['creator'] = [1, 2, 3]
-        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
-        state.end_turn(room, room.created_by_id)
-        assert state.reserve_deck['creator'] == [11, 22, 33, 1, 2, 3]
-        assert state.used_pile['creator'] == []
-
-    def test_end_turn_flips_active_side_and_resets_phase(self):
-        room = RoomFactory()
-        state = deal(make_ready_state(room))
-        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
-        state.end_turn(room, room.created_by_id)
-        assert state.active_side == Card.Side.LIGHT
-        assert state.phase_index == 0
-        assert state.turn_number == 2
-
-    def test_end_turn_rejects_outside_draw_phase(self):
-        room = RoomFactory()
-        state = deal(make_ready_state(room))
-        with pytest.raises(PermissionError):
-            state.end_turn(room, room.created_by_id)
-
-    def test_end_turn_rejects_when_not_your_turn(self):
-        room = RoomFactory()
-        state = deal(make_ready_state(room))
-        state.phase_index = PHASE_ORDER.index(Phase.DRAW)
-        with pytest.raises(PermissionError):
-            state.end_turn(room, room.player_two_id)
 
 
 class TestLifeForceDepletion:
@@ -211,7 +217,7 @@ class TestRematchResetsPiles:
         room = RoomFactory()
         state = deal(make_ready_state(room))
         state.phase_index = PHASE_ORDER.index(Phase.DRAW)
-        state.end_turn(room, room.created_by_id)
+        state.draw_cards(room, room.created_by_id, 0)
         state.ended_by_role = 'player_two'  # simulate game over
         state.rematch(room, room.created_by_id)
         assert state.cards_dealt is False

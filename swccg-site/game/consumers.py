@@ -31,19 +31,20 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        state = await self.load_state(room)
+        async with self.store.lock(self.room_code):
+            state = await self.load_state(room)
 
-        # If this user already has another tab/connection open on this room, close the
-        # old one rather than silently losing track of it.
-        stale_channel = state.connected_channels.get(user.id)
-        if stale_channel and stale_channel != self.channel_name:
-            await self.channel_layer.send(stale_channel, {
-                "type": "kick.close",
-                "reason": "You opened this room in another tab.",
-            })
+            # If this user already has another tab/connection open on this room, close
+            # the old one rather than silently losing track of it.
+            stale_channel = state.connected_channels.get(user.id)
+            if stale_channel and stale_channel != self.channel_name:
+                await self.channel_layer.send(stale_channel, {
+                    "type": "kick.close",
+                    "reason": "You opened this room in another tab.",
+                })
 
-        state.connected_channels[user.id] = self.channel_name
-        await self.save_and_broadcast(room, state)
+            state.connected_channels[user.id] = self.channel_name
+            await self.save_and_broadcast(room, state)
 
     async def disconnect(self, close_code):
         if not hasattr(self, "user"):
@@ -51,12 +52,13 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         room = await self.get_room(self.room_code)
         if room is None:
             return
-        state = await self.load_state(room)
-        # Only clear the slot if it's still us — an idle-kick may have already replaced it.
-        if state.connected_channels.get(self.user.id) == self.channel_name:
-            del state.connected_channels[self.user.id]
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        await self.save_and_broadcast(room, state)
+        async with self.store.lock(self.room_code):
+            state = await self.load_state(room)
+            # Only clear the slot if it's still us — an idle-kick may have already replaced it.
+            if state.connected_channels.get(self.user.id) == self.channel_name:
+                del state.connected_channels[self.user.id]
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+            await self.save_and_broadcast(room, state)
 
     async def receive_json(self, content, **kwargs):
         message_type = content.get("type")
@@ -92,8 +94,6 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         elif message_type == "draw_cards":
             count = content.get("count")
             await self.apply(lambda state, room: state.draw_cards(room, self.user.id, count))
-        elif message_type == "end_turn":
-            await self.apply(lambda state, room: state.end_turn(room, self.user.id))
         elif message_type == "resign":
             await self.apply(lambda state, room: state.resign(room, self.user.id))
         elif message_type == "rematch":
@@ -116,32 +116,33 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         """Loads fresh state/room, applies a mutation, and broadcasts — or sends back a PermissionError.
         Returns True on success, False if the mutation was rejected."""
         room = await self.get_room(self.room_code)
-        state = await self.load_state(room)
-        try:
-            mutate(state, room)
-        except PermissionError as exc:
-            await self.send_json({"type": "error", "message": str(exc)})
-            return False
+        async with self.store.lock(self.room_code):
+            state = await self.load_state(room)
+            try:
+                mutate(state, room)
+            except PermissionError as exc:
+                await self.send_json({"type": "error", "message": str(exc)})
+                return False
 
-        if state.status == 'in_progress' and not state.cards_dealt:
-            role_cards, role_force_icons = await self.get_role_cards_and_icons(state)
-            state.deal_cards(role_cards, role_force_icons)
+            if state.status == 'in_progress' and not state.cards_dealt:
+                role_cards, role_force_icons = await self.get_role_cards_and_icons(state)
+                state.deal_cards(role_cards, role_force_icons)
 
-        state.check_life_force_depletion()
+            state.check_life_force_depletion()
 
-        idle_role = state.check_timeout()
-        if idle_role:
-            reason = (
-                "You were idle too long on your turn and forfeited the game."
-                if state.ended_by_role == idle_role
-                else "You took too long to get ready and were removed from the room."
-            )
-            room = await self.kick_idle_player(room, state, idle_role, reason)
+            idle_role = state.check_timeout()
+            if idle_role:
+                reason = (
+                    "You were idle too long on your turn and forfeited the game."
+                    if state.ended_by_role == idle_role
+                    else "You took too long to get ready and were removed from the room."
+                )
+                room = await self.kick_idle_player(room, state, idle_role, reason)
 
-        await self.save_and_broadcast(room, state)
-        if state.cards_dealt:
-            await self.send_hands(room, state)
-        return True
+            await self.save_and_broadcast(room, state)
+            if state.cards_dealt:
+                await self.send_hands(room, state)
+            return True
 
     async def send_hands(self, room, state):
         """Hand contents are private — sent individually to each player's own connection(s), never group_send."""
@@ -177,21 +178,22 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
             return
 
-        state = await self.load_state(room)
-        if state.status == 'in_progress':
-            try:
-                state.resign(room, self.user.id)
-            except PermissionError:
-                pass
+        async with self.store.lock(self.room_code):
+            state = await self.load_state(room)
+            if state.status == 'in_progress':
+                try:
+                    state.resign(room, self.user.id)
+                except PermissionError:
+                    pass
 
-        state.connected_channels.pop(self.user.id, None)
-        deleted = await self.remove_player(room, self.user.id)
+            state.connected_channels.pop(self.user.id, None)
+            deleted = await self.remove_player(room, self.user.id)
 
-        if deleted:
-            await self.store.delete(self.room_code)
-        else:
-            room = await self.get_room(self.room_code)
-            await self.save_and_broadcast(room, state)
+            if deleted:
+                await self.store.delete(self.room_code)
+            else:
+                room = await self.get_room(self.room_code)
+                await self.save_and_broadcast(room, state)
 
         await self.close()
 
@@ -204,23 +206,24 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json({"type": "error", "message": "Only the room creator can close the room."})
             return
 
-        state = await self.load_state(room)
-        if state.status == 'in_progress':
-            await self.send_json({"type": "error", "message": "You can't close the room while a game is in progress."})
-            return
+        async with self.store.lock(self.room_code):
+            state = await self.load_state(room)
+            if state.status == 'in_progress':
+                await self.send_json({"type": "error", "message": "You can't close the room while a game is in progress."})
+                return
 
-        other_channel = next(
-            (ch for uid, ch in state.connected_channels.items() if uid != self.user.id), None
-        )
+            other_channel = next(
+                (ch for uid, ch in state.connected_channels.items() if uid != self.user.id), None
+            )
 
-        await self.destroy_room(room)
-        await self.store.delete(self.room_code)
+            await self.destroy_room(room)
+            await self.store.delete(self.room_code)
 
-        if other_channel:
-            await self.channel_layer.send(other_channel, {
-                "type": "kick.close",
-                "reason": "The room was closed by its creator.",
-            })
+            if other_channel:
+                await self.channel_layer.send(other_channel, {
+                    "type": "kick.close",
+                    "reason": "The room was closed by its creator.",
+                })
 
         await self.close()
 

@@ -136,7 +136,7 @@ class RoomState:
     def pass_phase(self, room, user_id):
         self._require_active_role(room, user_id)
         if PHASE_ORDER[self.phase_index] == Phase.DRAW:
-            raise PermissionError("Finish the Draw phase with End Turn.")
+            raise PermissionError("Drawing ends your turn automatically.")
         self.phase_index += 1
         self.last_action_at = time.time()
 
@@ -156,6 +156,8 @@ class RoomState:
         self.cards_dealt = True
 
     def activate_force(self, room, user_id, count):
+        """Activate phase's only action — activating (even 0) immediately advances to
+        Control, since there's no card-ability engine yet that would need a pause here."""
         role = self._require_active_role(room, user_id, Phase.ACTIVATE)
         max_allowed = self.max_force.get(role, 0) + 1
         if not (0 <= count <= max_allowed):
@@ -165,22 +167,23 @@ class RoomState:
             raise PermissionError("Not enough cards left in your Reserve Deck.")
         for _ in range(count):
             self.force_pile[role].append(reserve.pop())
+        self.phase_index += 1
         self.last_action_at = time.time()
 
     def draw_cards(self, room, user_id, count):
+        """Draw phase's only action — drawing (even 0) ends the turn automatically:
+        both players' Used Piles recirculate beneath their Reserve Decks, the phase
+        resets, active_side flips, and turn_number increments. No separate recycle/end-
+        turn step, for the same reason as activate_force above."""
         role = self._require_active_role(room, user_id, Phase.DRAW)
         force_pile = self.force_pile.get(role, [])
         if count > len(force_pile):
             raise PermissionError("Not enough cards left in your Force Pile.")
         for _ in range(count):
             self.hand[role].append(force_pile.pop())
-        self.last_action_at = time.time()
-
-    def end_turn(self, room, user_id):
-        self._require_active_role(room, user_id, Phase.DRAW)
-        for role in ROLES:
-            self.reserve_deck[role] = self.used_pile.get(role, []) + self.reserve_deck.get(role, [])
-            self.used_pile[role] = []
+        for r in ROLES:
+            self.reserve_deck[r] = self.used_pile.get(r, []) + self.reserve_deck.get(r, [])
+            self.used_pile[r] = []
         self.phase_index = 0
         self.active_side = Card.Side.LIGHT if self.active_side == Card.Side.DARK else Card.Side.DARK
         self.turn_number += 1

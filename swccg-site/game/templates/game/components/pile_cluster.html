@@ -1,0 +1,32 @@
+<div class="pile-cluster" id="{{ prefix }}-pile-cluster">
+  {% if not flip_used %}
+  <div class="pile-cluster-top pile-cluster-top-above">
+    <div class="pile-stack" id="{{ prefix }}-used-stack">
+      <span class="pile-count" id="{{ prefix }}-used-count">—</span>
+      <span class="pile-label">Used</span>
+    </div>
+  </div>
+  {% endif %}
+  <div class="pile-cluster-row{% if reverse_row %} pile-cluster-row-reverse{% endif %}">
+    <div class="pile-stack" id="{{ prefix }}-force-stack">
+      <span class="pile-count" id="{{ prefix }}-force-count">—</span>
+      <span class="pile-label">Force</span>
+    </div>
+    <div class="pile-stack" id="{{ prefix }}-reserve-stack">
+      <span class="pile-count" id="{{ prefix }}-reserve-count">—</span>
+      <span class="pile-label">Reserve</span>
+    </div>
+    <div class="pile-stack pile-lost" id="{{ prefix }}-lost-stack">
+      <span class="pile-count" id="{{ prefix }}-lost-count">—</span>
+      <span class="pile-label">Lost</span>
+    </div>
+  </div>
+  {% if flip_used %}
+  <div class="pile-cluster-top pile-cluster-top-below">
+    <div class="pile-stack" id="{{ prefix }}-used-stack">
+      <span class="pile-count" id="{{ prefix }}-used-count">—</span>
+      <span class="pile-label">Used</span>
+    </div>
+  </div>
+  {% endif %}
+</div>

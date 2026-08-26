@@ -1,0 +1,13 @@
+<div class="d-flex align-items-baseline gap-3 mb-4">
+  <h1 class="mb-0">Room {{ room.code }}</h1>
+  <span class="text-secondary">Share this code with your opponent</span>
+</div>
+
+<div id="connection-status" class="alert alert-warning">Connecting...</div>
+<div class="d-flex align-items-center gap-2 mb-3">
+  <span id="players-connected" class="text-secondary">—</span>
+  <div class="ms-auto d-flex gap-2">
+    <button id="close-room-btn" class="btn btn-outline-danger btn-sm d-none" data-bs-toggle="modal" data-bs-target="#close-room-modal">Close Room</button>
+    <button id="leave-room-btn" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#leave-room-modal">Leave Room</button>
+  </div>
+</div>
