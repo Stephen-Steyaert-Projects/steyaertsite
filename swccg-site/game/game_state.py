@@ -13,6 +13,7 @@ from swccgdb.models import Card
 
 ROLES = ('creator', 'player_two')
 IDLE_TIMEOUT_SECONDS = 5 * 60
+CHAT_HISTORY_LIMIT = 50
 
 
 def other_role(role):
@@ -51,6 +52,15 @@ class RoomState:
     force_pile: dict = field(default_factory=dict)    # role -> list of card ids, index 0 = bottom, last = top
     used_pile: dict = field(default_factory=dict)      # role -> list of card ids, index 0 = bottom, last = top
     lost_pile: dict = field(default_factory=dict)      # role -> list of card ids
+    # Persists across games in this room (not reset by rematch), capped to the most
+    # recent CHAT_HISTORY_LIMIT messages — replayed to a client on connect so a page
+    # reload doesn't wipe out the visible chat log.
+    chat_log: list = field(default_factory=list)  # [{"user_id": int, "username": str, "text": str}, ...]
+
+    def add_chat_message(self, user_id, username, text):
+        self.chat_log.append({"user_id": user_id, "username": username, "text": text})
+        if len(self.chat_log) > CHAT_HISTORY_LIMIT:
+            self.chat_log = self.chat_log[-CHAT_HISTORY_LIMIT:]
 
     @property
     def status(self):
@@ -325,6 +335,7 @@ class RoomState:
             "force_pile": self.force_pile,
             "used_pile": self.used_pile,
             "lost_pile": self.lost_pile,
+            "chat_log": self.chat_log,
         })
 
     @classmethod
@@ -349,4 +360,5 @@ class RoomState:
             force_pile=data.get("force_pile", {}),
             used_pile=data.get("used_pile", {}),
             lost_pile=data.get("lost_pile", {}),
+            chat_log=data.get("chat_log", []),
         )

@@ -45,6 +45,14 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
 
             state.connected_channels[user.id] = self.channel_name
             await self.save_and_broadcast(room, state)
+            if state.cards_dealt:
+                # A reconnect (e.g. page refresh) otherwise leaves this connection's
+                # hand empty until the next action/ping happens to trigger send_hands().
+                await self.send_hands(room, state)
+            if state.chat_log:
+                # Otherwise a reload wipes the visible chat log — it only ever lived in
+                # the DOM, never persisted anywhere until now.
+                await self.send_json({"type": "chat_history", "messages": state.chat_log})
 
     async def disconnect(self, close_code):
         if not hasattr(self, "user"):
@@ -107,6 +115,11 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         elif message_type == "chat":
             text = str(content.get("text", "")).strip()[:500]
             if text:
+                room = await self.get_room(self.room_code)
+                async with self.store.lock(self.room_code):
+                    state = await self.load_state(room)
+                    state.add_chat_message(self.user.id, self.user.username, text)
+                    await self.store.save(self.room_code, state)
                 await self.channel_layer.group_send(
                     self.group_name,
                     {"type": "room.chat", "user_id": self.user.id, "username": self.user.username, "text": text},

@@ -215,9 +215,9 @@ main {
 }
 
 .hand-card {
-  width: 70px;
-  height: 98px;
-  border-radius: 0.35rem;
+  width: 90px;
+  height: 126px;
+  border-radius: 0.4rem;
   border: 1px solid rgba(255, 255, 255, 0.25);
   background-size: cover;
   background-position: center;
@@ -226,6 +226,33 @@ main {
   display: flex;
   align-items: flex-end;
   overflow: hidden;
+  cursor: pointer;
+}
+
+/* Hand cards stay compact so a full hand fits — hovering one (desktop only; see the
+   card-zoom-hover-supported check in room.js) shows a large, readable preview instead
+   of trying to make every card in the row legible at once. Same approach as GEMP. */
+#card-zoom-preview {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1060; /* above modals too, since it's a transient hover preview */
+  pointer-events: none;
+  /* Fixed box, not just a max-size cap — different card scans have different native
+     resolutions, so capping alone rendered each one at its own intrinsic size and made
+     hovered cards look different sizes. object-fit scales every image into this same
+     box instead, so they're all consistent regardless of source resolution. */
+  width: min(60vw, 420px);
+  height: min(80vh, 588px);
+  object-fit: contain;
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  display: none;
+}
+
+#card-zoom-preview.visible {
+  display: block;
 }
 
 .hand-card-label {

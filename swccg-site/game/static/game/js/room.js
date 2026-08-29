@@ -49,10 +49,13 @@ const myPileCluster = document.getElementById('my-pile-cluster');
 const oppPileCluster = document.getElementById('opp-pile-cluster');
 const myPileStacks = document.querySelectorAll('#my-pile-cluster .pile-stack:not(.pile-lost)');
 const oppPileStacks = document.querySelectorAll('#opp-pile-cluster .pile-stack:not(.pile-lost)');
+const cardZoomPreview = document.getElementById('card-zoom-preview');
+const supportsCardZoom = !('ontouchstart' in window);
 
 let currentStatus = null;
 let myHand = [];
 let isChatOpen = false;
+let cardZoomTimer = null;
 
 socket.addEventListener('open', () => {
   statusEl.className = 'alert alert-success';
@@ -89,13 +92,14 @@ socket.addEventListener('message', (event) => {
     myHand = data.cards;
     renderMyHand();
   } else if (data.type === 'chat') {
-    const line = document.createElement('div');
-    line.textContent = `${data.username}: ${data.text}`;
-    chatLog.appendChild(line);
-    chatLog.scrollTop = chatLog.scrollHeight;
+    appendChatLine(data.username, data.text);
     if (!isChatOpen) {
       chatUnreadDot.classList.remove('d-none');
     }
+  } else if (data.type === 'chat_history') {
+    // Replayed once on connect so a page reload doesn't wipe the visible log — not a
+    // new message, so it doesn't flag the unread dot.
+    data.messages.forEach(m => appendChatLine(m.username, m.text));
   }
 });
 
@@ -105,6 +109,13 @@ setInterval(() => {
     socket.send(JSON.stringify({ type: 'ping' }));
   }
 }, 30000);
+
+function appendChatLine(username, text) {
+  const line = document.createElement('div');
+  line.textContent = `${username}: ${text}`;
+  chatLog.appendChild(line);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
 
 function setPileBackClass(stacks, side) {
   const backClass = SIDE_CARD_BACK_CLASS[side] || 'card-back-dark';
@@ -116,8 +127,12 @@ function setPileBackClass(stacks, side) {
 
 function renderMyHand() {
   handOverlay.innerHTML = myHand.map(card => {
-    const style = card.image_url ? ` style="background-image: url('${card.image_url}')"` : '';
-    return `<div class="hand-card"${style}><div class="hand-card-label">${card.name}</div></div>`;
+    // The card image already shows its name and game text — the label is only a
+    // fallback for cards with no image_url on file.
+    if (card.image_url) {
+      return `<div class="hand-card" data-image-url="${card.image_url}" style="background-image: url('${card.image_url}')"></div>`;
+    }
+    return `<div class="hand-card"><div class="hand-card-label">${card.name}</div></div>`;
   }).join('');
 }
 
@@ -308,3 +323,25 @@ document.getElementById('chat-form').addEventListener('submit', (e) => {
   socket.send(JSON.stringify({ type: 'chat', text: input.value.trim() }));
   input.value = '';
 });
+
+// Hand cards stay small so a full hand fits on screen — hovering one shows a large,
+// readable preview instead (same approach as GEMP). Disabled on touch devices, which
+// have no hover concept anyway.
+if (supportsCardZoom) {
+  handOverlay.addEventListener('mouseover', (e) => {
+    const cardEl = e.target.closest('.hand-card');
+    if (!cardEl || !cardEl.dataset.imageUrl) return;
+    clearTimeout(cardZoomTimer);
+    cardZoomTimer = setTimeout(() => {
+      cardZoomPreview.src = cardEl.dataset.imageUrl;
+      cardZoomPreview.classList.add('visible');
+    }, 200);
+  });
+
+  handOverlay.addEventListener('mouseout', (e) => {
+    const cardEl = e.target.closest('.hand-card');
+    if (!cardEl) return;
+    clearTimeout(cardZoomTimer);
+    cardZoomPreview.classList.remove('visible');
+  });
+}

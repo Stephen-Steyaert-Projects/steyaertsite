@@ -11,6 +11,9 @@
 <nav class="navbar bg-body-tertiary sticky-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="{% url 'index' %}">SWCCGDB</a>
+    <span class="navbar-text ms-3">
+      Room {{ room.code }} <small class="text-secondary">— share this code with your opponent</small>
+    </span>
   </div>
 </nav>
 {% endblock %}
@@ -49,6 +52,8 @@
 {% include 'game/components/chat_panel.html' %}
 
 {% include 'game/components/modals.html' %}
+
+<img id="card-zoom-preview" alt="">
 {% endblock %}
 
 {% block scripts %}
