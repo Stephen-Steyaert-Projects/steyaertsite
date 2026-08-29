@@ -145,12 +145,15 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
 
             idle_role = state.check_timeout()
             if idle_role:
+                # Mid-game (this idle-out is why the game just ended via resignation)
+                # vs. pre-game (still on the ready-check, bounce them and free the slot).
+                was_mid_game = state.ended_by_role == idle_role
                 reason = (
                     "You were idle too long on your turn and forfeited the game."
-                    if state.ended_by_role == idle_role
+                    if was_mid_game
                     else "You took too long to get ready and were removed from the room."
                 )
-                room = await self.kick_idle_player(room, state, idle_role, reason)
+                room = await self.kick_idle_player(room, state, idle_role, reason, reassign_room=not was_mid_game)
 
             await self.save_and_broadcast(room, state)
             if state.cards_dealt:
@@ -169,14 +172,21 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
     async def your_hand(self, event):
         await self.send_json({"type": "your_hand", "cards": event["cards"]})
 
-    async def kick_idle_player(self, room, state, idle_role, reason):
-        """Frees the idle player's room slot (promoting player_two to creator if needed) and closes their socket."""
+    async def kick_idle_player(self, room, state, idle_role, reason, reassign_room):
+        """Closes the idle player's socket. reassign_room additionally frees their room
+        slot (promoting player_two to creator, or clearing player_two) — only correct
+        for the pre-game ready-check bounce, where no game data exists yet. Doing that
+        mid-game would reshuffle which DB user holds each role while RoomState's
+        per-role fields (side_by_role, hand, piles, ...) keep pointing at the old
+        role labels, silently reattaching the survivor to the departed player's side
+        and cards instead of their own."""
         kicked_user_id = room.user_id_for_role(idle_role)
 
-        if idle_role == 'creator':
-            await self.promote_player_two(room)
-        else:
-            await self.clear_player_two(room)
+        if reassign_room:
+            if idle_role == 'creator':
+                await self.promote_player_two(room)
+            else:
+                await self.clear_player_two(room)
 
         channel_name = state.connected_channels.pop(kicked_user_id, None)
         if channel_name:

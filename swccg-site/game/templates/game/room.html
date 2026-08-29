@@ -14,6 +14,9 @@
     <span class="navbar-text ms-3">
       Room {{ room.code }} <small class="text-secondary">— share this code with your opponent</small>
     </span>
+    <span class="navbar-text ms-auto me-3" id="players-connected">—</span>
+    <button id="close-room-btn" class="btn btn-outline-danger btn-sm d-none me-2" data-bs-toggle="modal" data-bs-target="#close-room-modal">Close Room</button>
+    <button id="leave-room-btn" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#leave-room-modal">Leave Room</button>
   </div>
 </nav>
 {% endblock %}
@@ -37,7 +40,6 @@
     {% include 'game/components/opponent_hand_overlay.html' %}
     {% include 'game/components/pile_cluster.html' with prefix="opp" flip_used=True %}
   </div>
-  {% include 'game/components/status_overlay.html' %}
 </div>
 
 <div id="bottom-center-stack">
@@ -48,6 +50,7 @@
   {% include 'game/components/force_overlay.html' %}
 </div>
 
+{% include 'game/components/status_overlay.html' %}
 {% include 'game/components/turn_controls_overlay.html' %}
 {% include 'game/components/chat_panel.html' %}
 

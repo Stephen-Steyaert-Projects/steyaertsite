@@ -16,6 +16,25 @@ main {
   padding: 0.75rem 1rem;
 }
 
+/* A permanent "Connected" banner ate a full-width row for no reason once the
+   connection is healthy — this is a toast instead: pops up top-center, then room.js
+   fades/removes it a couple seconds after a successful connect. Errors (disconnected,
+   kicked) stay put since those actually need attention. */
+.connection-toast {
+  position: fixed;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1045;
+  transition: opacity 0.4s ease;
+  max-width: 90vw;
+}
+
+.connection-toast.toast-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Each player's hand sits next to their own Force/Reserve/Used/Lost piles, like a
    physical table — opponent's row up top, yours at the bottom. Both are single fixed,
    centered wrappers so their children can lay out in a plain flex row instead of each
@@ -34,7 +53,8 @@ main {
 }
 
 #top-center-stack {
-  top: 0.75rem;
+  /* Breathing room below the navbar instead of hugging it directly. */
+  top: 5rem;
 }
 
 #bottom-center-stack {
@@ -57,10 +77,16 @@ main {
   align-items: flex-end;
 }
 
+/* Match status is neutral/shared info, not the opponent's — it gets its own sidebar on
+   the right instead of being stacked directly under the opponent's hand, where it read
+   as if it belonged to them. */
 #status-overlay {
-  position: static;
-  text-align: center;
-  min-width: 280px;
+  top: 5rem;
+  right: 0.75rem;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 #opponent-hand-overlay,

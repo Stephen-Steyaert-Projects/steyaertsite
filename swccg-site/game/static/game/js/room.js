@@ -57,9 +57,18 @@ let myHand = [];
 let isChatOpen = false;
 let cardZoomTimer = null;
 
+let connectionToastTimer = null;
+
 socket.addEventListener('open', () => {
-  statusEl.className = 'alert alert-success';
+  statusEl.classList.remove('toast-hidden');
+  statusEl.className = 'alert alert-success connection-toast';
   statusEl.textContent = 'Connected';
+  // A healthy connection doesn't need to keep occupying screen space — fade it out a
+  // couple seconds after connecting. Errors below skip this and stay put.
+  clearTimeout(connectionToastTimer);
+  connectionToastTimer = setTimeout(() => {
+    statusEl.classList.add('toast-hidden');
+  }, 2000);
 });
 
 let kickedMessage = null;
@@ -70,7 +79,9 @@ socket.addEventListener('close', () => {
     window.location.href = navigateAfterClose;
     return;
   }
-  statusEl.className = 'alert alert-danger';
+  clearTimeout(connectionToastTimer);
+  statusEl.classList.remove('toast-hidden');
+  statusEl.className = 'alert alert-danger connection-toast';
   statusEl.textContent = kickedMessage || 'Disconnected';
   passPhaseBtn.disabled = true;
 });
@@ -154,7 +165,6 @@ function renderState(data) {
   statusOverlay.classList.toggle('d-none', !isTableVisible);
   opponentHandOverlay.classList.toggle('d-none', !isTableVisible);
   handOverlay.classList.toggle('d-none', !isTableVisible);
-  forceOverlay.classList.toggle('d-none', !isTableVisible);
   turnControlsOverlay.classList.toggle('d-none', !isTableVisible);
   myPileCluster.classList.toggle('d-none', !isTableVisible);
   oppPileCluster.classList.toggle('d-none', !isTableVisible);
@@ -197,17 +207,26 @@ function renderState(data) {
     // Activate and Draw are each a single explicit action (activate_force / draw_cards)
     // that automatically advances the phase/turn — Next Phase is only for the phases
     // that don't have their own action yet (Control, Deploy, Battle, Move).
-    const hidePassPhase = isActivatePhase || isDrawPhase;
+    const hidePassPhase = isActivatePhase || isDrawPhase || isGameOver;
     passPhaseBtn.classList.toggle('d-none', hidePassPhase);
-    passPhaseBtn.disabled = isGameOver || !isMyTurn || hidePassPhase;
+    passPhaseBtn.disabled = !isMyTurn || hidePassPhase;
 
-    activateForceRow.classList.toggle('d-none', !isActivatePhase);
-    activateForceBtn.disabled = isGameOver || !isMyTurn || !isActivatePhase;
-    drawCardsRow.classList.toggle('d-none', !isDrawPhase);
-    drawCardsBtn.disabled = isGameOver || !isMyTurn || !isDrawPhase;
+    // Hidden outright rather than just disabled when it's not your turn — a control
+    // you can't currently use is just clutter/confusion, not useful context. The
+    // container itself is hidden too when neither row has anything to show, so it
+    // doesn't linger as an empty box.
+    const showActivateRow = isActivatePhase && isMyTurn;
+    const showDrawRow = isDrawPhase && isMyTurn;
+    activateForceRow.classList.toggle('d-none', !showActivateRow);
+    activateForceBtn.disabled = isGameOver;
+    drawCardsRow.classList.toggle('d-none', !showDrawRow);
+    drawCardsBtn.disabled = isGameOver;
+    forceOverlay.classList.toggle('d-none', !(showActivateRow || showDrawRow));
 
+    resignBtn.classList.toggle('d-none', isGameOver);
     resignBtn.disabled = isGameOver;
-    rematchBtn.disabled = !isGameOver || !data.room_is_full;
+    rematchBtn.classList.toggle('d-none', !isGameOver);
+    rematchBtn.disabled = !data.room_is_full;
     phaseErrorEl.textContent = '';
 
     const opponentUserId = Object.keys(data.side_by_user_id).find(uid => Number(uid) !== userId);
