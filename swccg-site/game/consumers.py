@@ -323,6 +323,19 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             role_force_icons[role] = (location_text.stats.get(stats_key, 0) if location_text else 0)
         return role_cards, role_force_icons
 
+    # All the character card_type values collapse to a single "Character" group for hand
+    # sorting — a player thinks "characters", not "Rebel" vs "Alien" vs "Sith", etc.
+    CHARACTER_CARD_TYPES = {
+        Card.CardType.JEDI_MASTER_CHARACTER,
+        Card.CardType.REBEL_CHARACTER,
+        Card.CardType.REPUBLIC_CHARACTER,
+        Card.CardType.ALIEN_CHARACTER,
+        Card.CardType.DROID_CHARACTER,
+        Card.CardType.DARK_JEDI_MASTER_CHARACTER,
+        Card.CardType.IMPERIAL_CHARACTER,
+        Card.CardType.SITH_CHARACTER,
+    }
+
     @sync_to_async
     def get_hand_cards(self, card_ids):
         cards_by_id = {
@@ -330,7 +343,11 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
                 "id", "name", "card_type", "text__image_url", "text__stats",
             )
         }
-        return [
+
+        def type_group(card_type):
+            return "Character" if card_type in self.CHARACTER_CARD_TYPES else Card.CardType(card_type).label
+
+        cards = [
             {
                 "id": cid,
                 "name": cards_by_id[cid]["name"],
@@ -344,9 +361,13 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
                     cards_by_id[cid]["card_type"] == Card.CardType.LOCATION
                     and (cards_by_id[cid]["text__stats"] or {}).get("subType") == "Site"
                 ),
+                "type_group": type_group(cards_by_id[cid]["card_type"]),
             }
             for cid in card_ids if cid in cards_by_id
         ]
+        # Group by type (Character, Site, Interrupt, etc.), alphabetically within each group.
+        cards.sort(key=lambda c: (c["type_group"], c["name"]))
+        return cards
 
     @sync_to_async
     def promote_player_two(self, room):
