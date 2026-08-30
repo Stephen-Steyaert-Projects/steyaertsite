@@ -28,7 +28,6 @@ const closeRoomBtn = document.getElementById('close-room-btn');
 const statusOverlay = document.getElementById('status-overlay');
 const opponentHandOverlay = document.getElementById('opponent-hand-overlay');
 const handOverlay = document.getElementById('hand-overlay');
-const forceOverlay = document.getElementById('force-overlay');
 const turnControlsOverlay = document.getElementById('turn-controls-overlay');
 const resultBanner = document.getElementById('game-result-banner');
 const phaseErrorEl = document.getElementById('phase-error');
@@ -137,13 +136,33 @@ function setPileBackClass(stacks, side) {
 }
 
 function renderMyHand() {
-  handOverlay.innerHTML = myHand.map(card => {
+  // Fanned like a real hand of cards: each card's rotation/lift is set as a CSS custom
+  // property (not inline transform directly) so the :hover rule in room.css — higher
+  // specificity, same cascade — can still override it without needing !important.
+  const n = myHand.length;
+  const center = (n - 1) / 2;
+  const maxSpreadDeg = 26; // total fan spread stays capped regardless of hand size
+  const stepDeg = n > 1 ? Math.min(7, maxSpreadDeg / (n - 1)) : 0;
+
+  handOverlay.innerHTML = myHand.map((card, i) => {
+    const offset = i - center;
+    const rotateDeg = (offset * stepDeg).toFixed(2);
+    const liftPx = (Math.abs(offset) * 2.2).toFixed(1);
+    const fanVars = `--rot: ${rotateDeg}deg; --lift: ${liftPx}px;`;
+
     // The card image already shows its name and game text — the label is only a
     // fallback for cards with no image_url on file.
     if (card.image_url) {
-      return `<div class="hand-card" data-image-url="${card.image_url}" style="background-image: url('${card.image_url}')"></div>`;
+      // Site cards (as opposed to System/planet cards) are scanned rotated 90° from
+      // everything else — corrected here via an inner wrapper so only the artwork
+      // rotates, not the card's own rectangular slot/fan angle. The hover-zoom preview
+      // always uses the raw image_url directly, so it's unaffected by this.
+      const artClass = card.is_site ? 'hand-card-art hand-card-art-rotated' : 'hand-card-art';
+      return `<div class="hand-card" data-image-url="${card.image_url}" style="${fanVars}">` +
+        `<div class="${artClass}" style="background-image: url('${card.image_url}')"></div>` +
+        `</div>`;
     }
-    return `<div class="hand-card"><div class="hand-card-label">${card.name}</div></div>`;
+    return `<div class="hand-card" style="${fanVars}"><div class="hand-card-label">${card.name}</div></div>`;
   }).join('');
 }
 
@@ -212,16 +231,13 @@ function renderState(data) {
     passPhaseBtn.disabled = !isMyTurn || hidePassPhase;
 
     // Hidden outright rather than just disabled when it's not your turn — a control
-    // you can't currently use is just clutter/confusion, not useful context. The
-    // container itself is hidden too when neither row has anything to show, so it
-    // doesn't linger as an empty box.
+    // you can't currently use is just clutter/confusion, not useful context.
     const showActivateRow = isActivatePhase && isMyTurn;
     const showDrawRow = isDrawPhase && isMyTurn;
     activateForceRow.classList.toggle('d-none', !showActivateRow);
     activateForceBtn.disabled = isGameOver;
     drawCardsRow.classList.toggle('d-none', !showDrawRow);
     drawCardsBtn.disabled = isGameOver;
-    forceOverlay.classList.toggle('d-none', !(showActivateRow || showDrawRow));
 
     resignBtn.classList.toggle('d-none', isGameOver);
     resignBtn.disabled = isGameOver;
@@ -260,7 +276,7 @@ function renderState(data) {
     if (isGameOver) {
       const won = data.winner_user_id === userId;
       resultBanner.className = 'alert mt-0 mb-2 py-1 ' + (won ? 'alert-success' : 'alert-secondary');
-      let text = won ? 'You win!' : 'You lost this game.';
+      let text = won ? 'You win!' : 'You Lost';
       if (!data.room_is_full) {
         text += ' This room is open for a new challenger.';
       }

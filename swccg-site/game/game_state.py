@@ -38,6 +38,7 @@ class RoomState:
     side_by_role: dict = field(default_factory=dict)  # role -> Card.Side value, randomized per game
     ready_decks: dict = field(default_factory=dict)        # role -> GameDeck id, chosen fresh each game
     starting_locations: dict = field(default_factory=dict)  # role -> Card id, chosen fresh each game
+    starting_location_names: dict = field(default_factory=dict)  # role -> Card name, for the same-name check below
     phase_index: int = 0
     active_side: str = None
     turn_number: int = 1
@@ -115,8 +116,15 @@ class RoomState:
             raise PermissionError("That's not a Location card.")
         if card.side != self.side_by_role[role]:
             raise PermissionError("That location isn't on your side.")
+        # Real rules allow the same named location for both sides (with a
+        # convert/re-pick resolution) — not supported without a board yet, so this
+        # blocks it outright rather than resolving it incorrectly. Compared by name,
+        # not card id, since each side's print of e.g. Tatooine is a separate DB row.
+        if self.starting_location_names.get(other_role(role)) == card.name:
+            raise PermissionError("Your opponent already chose that starting location — pick a different one.")
 
         self.starting_locations[role] = card.id
+        self.starting_location_names[role] = card.name
         self._maybe_start_game()
 
     def _maybe_start_game(self):
@@ -246,6 +254,7 @@ class RoomState:
             self.side_by_role = {}
             self.ready_decks = {}
             self.starting_locations = {}
+            self.starting_location_names = {}
             self.awaiting_ready_since = None
             return idle_role
 
@@ -262,6 +271,7 @@ class RoomState:
         self.side_by_role = {role: side for role, side in zip(ROLES, reversed(list(self.side_by_role.values())))}
         self.ready_decks = {}
         self.starting_locations = {}
+        self.starting_location_names = {}
         self.ended_by_role = None
         self.phase_index = 0
         self.active_side = None
@@ -321,6 +331,7 @@ class RoomState:
             "side_by_role": self.side_by_role,
             "ready_decks": {role: str(deck_id) for role, deck_id in self.ready_decks.items()},
             "starting_locations": self.starting_locations,
+            "starting_location_names": self.starting_location_names,
             "phase_index": self.phase_index,
             "active_side": self.active_side,
             "turn_number": self.turn_number,
@@ -346,6 +357,7 @@ class RoomState:
             side_by_role=data["side_by_role"],
             ready_decks=data["ready_decks"],
             starting_locations=data.get("starting_locations", {}),
+            starting_location_names=data.get("starting_location_names", {}),
             phase_index=data["phase_index"],
             active_side=data["active_side"],
             turn_number=data["turn_number"],

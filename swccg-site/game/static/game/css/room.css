@@ -58,7 +58,7 @@ main {
 }
 
 #bottom-center-stack {
-  bottom: 0.75rem;
+  bottom: 2rem;
 }
 
 .hand-row {
@@ -93,10 +93,26 @@ main {
 #hand-overlay {
   position: static;
   display: flex;
-  gap: 0.35rem;
   align-items: flex-end;
   max-width: 70vw;
-  overflow-x: auto;
+  overflow: visible;
+  /* Cards live loose on the table, not in a panel — no background/border/padding
+     from .game-overlay. */
+  background: none;
+  border: none;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+#opponent-hand-overlay {
+  gap: 0.35rem;
+}
+
+#hand-overlay {
+  /* Cards overlap instead of sitting gapped — see .hand-card's negative margin — and
+     get extra top padding so the fan's rotation/hover-lift doesn't clip against the
+     container edge. */
+  padding-top: 1.2rem;
 }
 
 #force-overlay {
@@ -111,6 +127,53 @@ main {
   flex-direction: column;
   gap: 0.5rem;
   align-items: stretch;
+}
+
+.force-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.force-action-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.65));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.force-action-input {
+  width: 3rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.3rem;
+  color: #e8e8ea;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.2rem 0.3rem;
+}
+
+.force-action-input:focus {
+  outline: none;
+  border-color: rgba(91, 141, 239, 0.7);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.force-action-btn {
+  background: #3b6fd8;
+  border: none;
+  border-radius: 0.3rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.force-action-btn:hover {
+  background: #4a7ce8;
 }
 
 /* Life Force piles, drawn as card-back stacks with the count on top instead of a text
@@ -154,43 +217,97 @@ main {
   flex-direction: row-reverse;
 }
 
+/* "Stacked Depth" treatment: three offset, shadowed layers per pile so it reads as an
+   actual stack of cards, with the count as a small corner badge instead of dominating
+   the whole face. See the design comparison this was picked from — Option A. */
 .pile-stack {
   position: relative;
   width: 42px;
   height: 58px;
-  border-radius: 0.3rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #2a2a2e;
   flex: 0 0 auto;
   margin-bottom: 1.1rem; /* room for the absolutely-positioned .pile-label below */
 }
 
-.pile-stack.card-back-dark {
-  background-color: #000000;
+/* Solid per-layer shades instead of opacity — opacity lets a dark layer blend straight
+   into the page's own dark background, which is exactly what erased the stacked-depth
+   effect for dark-side piles. Distinct backgrounds plus a brighter border keep every
+   layer's silhouette visible regardless of what's behind it. */
+.pile-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.75);
 }
 
-.pile-stack.card-back-light {
-  background-color: #ffffff;
+.pile-layer:nth-child(1) {
+  transform: translate(5px, 5px);
+  background: #101014;
 }
 
-.pile-stack.pile-lost {
-  background-color: #3b1f1f;
+.pile-layer:nth-child(2) {
+  transform: translate(2.5px, 2.5px);
+  background: #17171b;
+}
+
+.pile-layer:nth-child(3) {
+  transform: translate(0, 0);
+  background: #212127;
+}
+
+.pile-stack.card-back-light .pile-layer {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.pile-stack.card-back-light .pile-layer:nth-child(1) {
+  background: #cfcabd;
+}
+
+.pile-stack.card-back-light .pile-layer:nth-child(2) {
+  background: #e2ddd0;
+}
+
+.pile-stack.card-back-light .pile-layer:nth-child(3) {
+  background: #f4f2ec;
+}
+
+.pile-stack.pile-lost .pile-layer {
   border-color: rgba(255, 140, 140, 0.5);
 }
 
-.pile-count {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: #fff;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.9);
+.pile-stack.pile-lost .pile-layer:nth-child(1) {
+  background: #2a1515;
 }
 
-.pile-stack.card-back-light .pile-count {
-  color: #111;
-  text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
+.pile-stack.pile-lost .pile-layer:nth-child(2) {
+  background: #331b1b;
+}
+
+.pile-stack.pile-lost .pile-layer:nth-child(3) {
+  background: #3f2222;
+}
+
+.pile-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e8e8ea;
+  border: 1.5px solid rgba(0, 0, 0, 0.55);
+  color: #16151a;
+  font-weight: 700;
+  font-size: 0.68rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.pile-stack.pile-lost .pile-count {
+  background: #ffb3b3;
 }
 
 .pile-label {
@@ -240,19 +357,59 @@ main {
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
 
+/* Fanned like a real hand of cards — overlapping, tilted outward from center. Each
+   card's own rotation/lift comes from the --rot/--lift custom properties room.js sets
+   inline per card (computed by position so it scales to any hand size); :hover here
+   overrides them via normal cascade specificity, no !important needed. */
 .hand-card {
-  width: 90px;
-  height: 126px;
+  --card-w: 90px;
+  --card-h: 126px;
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
   border-radius: 0.4rem;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  background-size: cover;
-  background-position: center;
   background-color: #2a2a2e;
   flex: 0 0 auto;
   display: flex;
   align-items: flex-end;
   overflow: hidden;
   cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transform: rotate(var(--rot, 0deg)) translateY(var(--lift, 0px));
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Site location cards are scanned rotated 90° from everything else — this inner
+   wrapper corrects just the artwork, so the card's own rectangular slot (and the fan
+   rotation above) stays untouched. Sized swapped-and-rotated so the image still fills
+   the card without clipping or distorting. */
+.hand-card-art {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--card-w);
+  height: var(--card-h);
+  background-size: cover;
+  background-position: center;
+  transform: translate(-50%, -50%);
+}
+
+.hand-card-art-rotated {
+  width: var(--card-h);
+  height: var(--card-w);
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+#hand-overlay .hand-card:not(:first-child) {
+  margin-left: -22px;
+}
+
+.hand-card:hover {
+  transform: translateY(-14px) rotate(0deg) scale(1.04);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6);
+  z-index: 5;
+  position: relative;
 }
 
 /* Hand cards stay compact so a full hand fits — hovering one (desktop only; see the

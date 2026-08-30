@@ -327,11 +327,24 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
     def get_hand_cards(self, card_ids):
         cards_by_id = {
             c["id"]: c for c in Card.objects.filter(id__in=card_ids).values(
-                "id", "name", "text__image_url",
+                "id", "name", "card_type", "text__image_url", "text__stats",
             )
         }
         return [
-            {"id": cid, "name": cards_by_id[cid]["name"], "image_url": cards_by_id[cid]["text__image_url"] or ""}
+            {
+                "id": cid,
+                "name": cards_by_id[cid]["name"],
+                "image_url": cards_by_id[cid]["text__image_url"] or "",
+                # Site cards are scanned rotated 90° from everything else — the compact
+                # hand view corrects that; the hover-zoom preview always shows the card
+                # as scanned, untouched. Locations also come in "System" (planet) and
+                # "Sector" (the Cloud City tier between System and Site) subtypes,
+                # neither of which needs correcting — only "Site" specifically does.
+                "is_site": (
+                    cards_by_id[cid]["card_type"] == Card.CardType.LOCATION
+                    and (cards_by_id[cid]["text__stats"] or {}).get("subType") == "Site"
+                ),
+            }
             for cid in card_ids if cid in cards_by_id
         ]
 

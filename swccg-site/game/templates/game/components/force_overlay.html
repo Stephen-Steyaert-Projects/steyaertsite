@@ -1,12 +1,12 @@
 <div id="force-overlay" class="game-overlay d-none">
-  <div class="d-flex gap-2 align-items-center" id="activate-force-row">
-    <label for="activate-force-input" class="mb-0 small">Activate:</label>
-    <input type="number" id="activate-force-input" class="form-control form-control-sm" style="max-width: 70px;" min="0" value="0">
-    <button id="activate-force-btn" class="btn btn-outline-primary btn-sm">Go</button>
+  <div class="force-action-row" id="activate-force-row">
+    <span class="force-action-label">Activate</span>
+    <input type="number" id="activate-force-input" class="force-action-input" min="0" value="0">
+    <button id="activate-force-btn" class="force-action-btn">Go</button>
   </div>
-  <div class="d-flex gap-2 align-items-center" id="draw-cards-row">
-    <label for="draw-cards-input" class="mb-0 small">Draw:</label>
-    <input type="number" id="draw-cards-input" class="form-control form-control-sm" style="max-width: 70px;" min="0" value="0">
-    <button id="draw-cards-btn" class="btn btn-outline-primary btn-sm">Go</button>
+  <div class="force-action-row" id="draw-cards-row">
+    <span class="force-action-label">Draw</span>
+    <input type="number" id="draw-cards-input" class="force-action-input" min="0" value="0">
+    <button id="draw-cards-btn" class="force-action-btn">Go</button>
   </div>
 </div>

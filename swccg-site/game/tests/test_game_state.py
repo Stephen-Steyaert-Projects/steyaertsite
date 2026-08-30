@@ -2,7 +2,7 @@ import pytest
 
 from swccgdb.models import Card
 
-from game.factories import RoomFactory
+from game.factories import CardFactory, RoomFactory
 from game.game_state import PHASE_ORDER, Phase, RoomState
 
 pytestmark = pytest.mark.django_db
@@ -66,6 +66,40 @@ class TestDealCards:
         all_creator_cards = state.hand['creator'] + state.reserve_deck['creator']
         assert all_creator_cards.count(5) == 3
         assert len(all_creator_cards) == 59
+
+
+class TestChooseStartingLocation:
+    def make_readied_state(self, room):
+        """Both players readied up (decks picked), but neither has chosen a location yet."""
+        state = RoomState()
+        state.side_by_role = {'creator': Card.Side.DARK, 'player_two': Card.Side.LIGHT}
+        state.ready_decks = {'creator': 'deck-1', 'player_two': 'deck-2'}
+        return state
+
+    def test_rejects_same_named_location_opponent_already_picked(self):
+        """Dark and Light prints of the same named location are separate DB rows with
+        different ids — real rules allow this (with a convert/re-pick resolution this
+        app doesn't support without a board), so it's blocked outright here instead."""
+        room = RoomFactory()
+        state = self.make_readied_state(room)
+        dark_tatooine = CardFactory(name='Tatooine', card_type=Card.CardType.LOCATION, side=Card.Side.DARK)
+        light_tatooine = CardFactory(name='Tatooine', card_type=Card.CardType.LOCATION, side=Card.Side.LIGHT)
+
+        state.choose_starting_location(room, room.created_by_id, dark_tatooine)
+        with pytest.raises(PermissionError):
+            state.choose_starting_location(room, room.player_two_id, light_tatooine)
+
+    def test_allows_different_named_locations(self):
+        room = RoomFactory()
+        state = self.make_readied_state(room)
+        dark_tatooine = CardFactory(name='Tatooine', card_type=Card.CardType.LOCATION, side=Card.Side.DARK)
+        light_yavin = CardFactory(name='Yavin 4', card_type=Card.CardType.LOCATION, side=Card.Side.LIGHT)
+
+        state.choose_starting_location(room, room.created_by_id, dark_tatooine)
+        state.choose_starting_location(room, room.player_two_id, light_yavin)
+
+        assert state.starting_locations['creator'] == dark_tatooine.id
+        assert state.starting_locations['player_two'] == light_yavin.id
 
 
 class TestActivateForce:
