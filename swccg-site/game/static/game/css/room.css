@@ -479,28 +479,47 @@ main {
 
 /* Hand cards stay compact so a full hand fits — hovering one (desktop only; see the
    card-zoom-hover-supported check in room.js) shows a large, readable preview instead
-   of trying to make every card in the row legible at once. Same approach as GEMP. */
-#card-zoom-preview {
+   of trying to make every card in the row legible at once. Same approach as GEMP.
+   Wrapped in a div (rather than being a bare <img>) so it can catch its own hover —
+   moving the mouse from the small source card onto the enlarged preview to click it
+   (e.g. to rotate a location, see below) must not count as "left the card" and hide it. */
+#card-zoom-preview-wrap {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1060; /* above modals too, since it's a transient hover preview */
-  pointer-events: none;
   /* Fixed box, not just a max-size cap — different card scans have different native
      resolutions, so capping alone rendered each one at its own intrinsic size and made
      hovered cards look different sizes. object-fit scales every image into this same
      box instead, so they're all consistent regardless of source resolution. */
   width: min(60vw, 420px);
   height: min(80vh, 588px);
-  object-fit: contain;
-  border-radius: 0.6rem;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
   display: none;
 }
 
-#card-zoom-preview.visible {
+#card-zoom-preview-wrap.visible {
   display: block;
+}
+
+#card-zoom-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease;
+}
+
+/* Only locations click-to-rotate (they're printed with a readable band at each end,
+   see fillSpaceLineSlot in room.js) — the cursor only invites a click when that's
+   actually possible. */
+#card-zoom-preview.rotatable {
+  cursor: pointer;
+}
+
+#card-zoom-preview.rotated {
+  transform: rotate(180deg);
 }
 
 .hand-card-label {

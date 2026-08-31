@@ -48,6 +48,7 @@ const myPileCluster = document.getElementById('my-pile-cluster');
 const oppPileCluster = document.getElementById('opp-pile-cluster');
 const myPileStacks = document.querySelectorAll('#my-pile-cluster .pile-stack:not(.pile-lost)');
 const oppPileStacks = document.querySelectorAll('#opp-pile-cluster .pile-stack:not(.pile-lost)');
+const cardZoomPreviewWrap = document.getElementById('card-zoom-preview-wrap');
 const cardZoomPreview = document.getElementById('card-zoom-preview');
 const supportsCardZoom = !('ontouchstart' in window);
 const spaceLine = document.getElementById('space-line');
@@ -420,22 +421,45 @@ document.getElementById('chat-form').addEventListener('submit', (e) => {
 // Hand cards stay small so a full hand fits on screen — hovering one shows a large,
 // readable preview instead (same approach as GEMP). Disabled on touch devices, which
 // have no hover concept anyway.
+let cardZoomHideTimer = null;
+
+function showCardZoom(cardEl, rotatable) {
+  clearTimeout(cardZoomHideTimer);
+  clearTimeout(cardZoomTimer);
+  cardZoomTimer = setTimeout(() => {
+    cardZoomPreview.src = cardEl.dataset.imageUrl;
+    // Locations are printed with a readable band at each end (see fillSpaceLineSlot) —
+    // clicking flips between them. Hand cards (characters, etc.) don't have that second
+    // readable orientation, so they're not click-rotatable. Reset to unrotated on every
+    // new card so a stale flip doesn't carry over from whatever was hovered last.
+    cardZoomPreview.classList.toggle('rotatable', rotatable);
+    cardZoomPreview.classList.remove('rotated');
+    cardZoomPreviewWrap.classList.add('visible');
+  }, 200);
+}
+
+function scheduleHideCardZoom() {
+  clearTimeout(cardZoomTimer);
+  clearTimeout(cardZoomHideTimer);
+  // Small delay (rather than hiding immediately) so moving the mouse from the small
+  // source card to the enlarged preview — e.g. to click it and rotate — doesn't close
+  // it out from under the cursor first.
+  cardZoomHideTimer = setTimeout(() => {
+    cardZoomPreviewWrap.classList.remove('visible');
+  }, 100);
+}
+
 if (supportsCardZoom) {
   handOverlay.addEventListener('mouseover', (e) => {
     const cardEl = e.target.closest('.hand-card');
     if (!cardEl || !cardEl.dataset.imageUrl) return;
-    clearTimeout(cardZoomTimer);
-    cardZoomTimer = setTimeout(() => {
-      cardZoomPreview.src = cardEl.dataset.imageUrl;
-      cardZoomPreview.classList.add('visible');
-    }, 200);
+    showCardZoom(cardEl, false);
   });
 
   handOverlay.addEventListener('mouseout', (e) => {
     const cardEl = e.target.closest('.hand-card');
     if (!cardEl) return;
-    clearTimeout(cardZoomTimer);
-    cardZoomPreview.classList.remove('visible');
+    scheduleHideCardZoom();
   });
 
   // Same zoom-on-hover treatment for the space line — locations don't carry a visible
@@ -443,17 +467,21 @@ if (supportsCardZoom) {
   spaceLine.addEventListener('mouseover', (e) => {
     const cardEl = e.target.closest('.loc-card');
     if (!cardEl || !cardEl.dataset.imageUrl) return;
-    clearTimeout(cardZoomTimer);
-    cardZoomTimer = setTimeout(() => {
-      cardZoomPreview.src = cardEl.dataset.imageUrl;
-      cardZoomPreview.classList.add('visible');
-    }, 200);
+    showCardZoom(cardEl, true);
   });
 
   spaceLine.addEventListener('mouseout', (e) => {
     const cardEl = e.target.closest('.loc-card');
     if (!cardEl) return;
-    clearTimeout(cardZoomTimer);
-    cardZoomPreview.classList.remove('visible');
+    scheduleHideCardZoom();
+  });
+
+  cardZoomPreviewWrap.addEventListener('mouseover', () => clearTimeout(cardZoomHideTimer));
+  cardZoomPreviewWrap.addEventListener('mouseout', () => scheduleHideCardZoom());
+
+  cardZoomPreview.addEventListener('click', () => {
+    if (cardZoomPreview.classList.contains('rotatable')) {
+      cardZoomPreview.classList.toggle('rotated');
+    }
   });
 }
