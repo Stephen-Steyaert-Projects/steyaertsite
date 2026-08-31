@@ -77,6 +77,82 @@ main {
   align-items: flex-end;
 }
 
+/* The space line — starting locations, and eventually the full deployed location chain
+   — sits in the dead middle of the table between the two hand rows. Confirmed direction:
+   a single shared rail (not a "whose side" split — a location is table-shared once
+   deployed), colored borders just mark who deployed each card. */
+#space-line {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1020; /* below hand/piles/turn-controls, above normal content */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(90vw, 640px);
+}
+
+#space-line .rail-line {
+  position: absolute;
+  left: 3rem;
+  right: 3rem;
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(193, 68, 58, 0.35), #2a2a32 20%, #2a2a32 80%, rgba(201, 162, 39, 0.35));
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+#space-line .rail-slots {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  width: 100%;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+#space-line .rail-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#space-line .loc-card {
+  width: 78px;
+  height: 109px;
+  border-radius: 0.35rem;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  border: 2px solid transparent;
+}
+
+/* Site art is scanned landscape already (unlike System art, which is portrait) — shown
+   at its native aspect ratio instead of rotated, so it reads as a Site on sight. */
+#space-line .loc-card.loc-card-site {
+  width: 109px;
+  height: 78px;
+}
+
+#space-line .rail-slot.side-D .loc-card { border-color: #c1443a; }
+#space-line .rail-slot.side-L .loc-card { border-color: #c9a227; }
+
+#space-line .rail-nameplate {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, rgba(255, 255, 255, 0.65));
+  text-align: center;
+  max-width: 90px;
+}
+
+#space-line .rail-slot.side-D .rail-nameplate { color: #d97364; }
+#space-line .rail-slot.side-L .rail-nameplate { color: #ddbb52; }
+
 /* Match status is neutral/shared info, not the opponent's — it gets its own sidebar on
    the right instead of being stacked directly under the opponent's hand, where it read
    as if it belonged to them. */

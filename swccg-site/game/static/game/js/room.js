@@ -50,9 +50,18 @@ const myPileStacks = document.querySelectorAll('#my-pile-cluster .pile-stack:not
 const oppPileStacks = document.querySelectorAll('#opp-pile-cluster .pile-stack:not(.pile-lost)');
 const cardZoomPreview = document.getElementById('card-zoom-preview');
 const supportsCardZoom = !('ontouchstart' in window);
+const spaceLine = document.getElementById('space-line');
+const spaceLineOpponentSlot = document.getElementById('space-line-opponent');
+const spaceLineOpponentCard = document.getElementById('space-line-opponent-card');
+const spaceLineOpponentName = document.getElementById('space-line-opponent-name');
+const spaceLineMineSlot = document.getElementById('space-line-mine');
+const spaceLineMineCard = document.getElementById('space-line-mine-card');
+const spaceLineMineName = document.getElementById('space-line-mine-name');
 
 let currentStatus = null;
 let myHand = [];
+let spaceLineLocations = {};   // user_id (string) -> {id, name, image_url, is_site}
+let latestSideByUserId = {};   // user_id (string) -> 'D' | 'L', cached from the last state broadcast
 let isChatOpen = false;
 let cardZoomTimer = null;
 
@@ -101,6 +110,9 @@ socket.addEventListener('message', (event) => {
   } else if (data.type === 'your_hand') {
     myHand = data.cards;
     renderMyHand();
+  } else if (data.type === 'space_line') {
+    spaceLineLocations = data.locations;
+    renderSpaceLine();
   } else if (data.type === 'chat') {
     appendChatLine(data.username, data.text);
     if (!isChatOpen) {
@@ -133,6 +145,45 @@ function setPileBackClass(stacks, side) {
     el.classList.remove('card-back-light', 'card-back-dark');
     el.classList.add(backClass);
   });
+}
+
+function renderSpaceLine() {
+  const opponentUserId = Object.keys(latestSideByUserId).find(uid => Number(uid) !== userId);
+  fillSpaceLineSlot(spaceLineOpponentSlot, spaceLineOpponentCard, spaceLineOpponentName, opponentUserId);
+  fillSpaceLineSlot(spaceLineMineSlot, spaceLineMineCard, spaceLineMineName, String(userId));
+}
+
+function fillSpaceLineSlot(slotEl, cardEl, nameEl, forUserId) {
+  const location = forUserId ? spaceLineLocations[forUserId] : null;
+  const side = forUserId ? latestSideByUserId[forUserId] : null;
+
+  slotEl.classList.remove('side-D', 'side-L');
+  if (!location) {
+    cardEl.style.backgroundImage = '';
+    cardEl.classList.remove('loc-card-site');
+    nameEl.textContent = '';
+    return;
+  }
+
+  if (side) {
+    slotEl.classList.add(`side-${side}`);
+  }
+  cardEl.style.backgroundImage = location.image_url ? `url('${location.image_url}')` : '';
+  // Site art is scanned landscape already (unlike System art, which is portrait) — shown
+  // at its native aspect ratio instead of being rotated, so it reads as a Site on sight.
+  cardEl.classList.toggle('loc-card-site', !!location.is_site);
+
+  // Every location scan (System or Site) is printed readable at one end and upside-down
+  // at the other, and the readable end shows that print's own side's Force icon by
+  // default. Matches GEMP's convention (CardDisplay.js: a location "owned by your
+  // opponent" is naturally inverted) — any location whose side differs from this
+  // viewer's own side gets rotated 180° so the icon matching the viewer faces them;
+  // one's own locations render unrotated.
+  const mySide = latestSideByUserId[String(userId)];
+  const needsFlip = side && mySide && side !== mySide;
+  cardEl.style.transform = needsFlip ? 'rotate(180deg)' : '';
+
+  nameEl.textContent = location.name;
 }
 
 function renderMyHand() {
@@ -187,6 +238,12 @@ function renderState(data) {
   turnControlsOverlay.classList.toggle('d-none', !isTableVisible);
   myPileCluster.classList.toggle('d-none', !isTableVisible);
   oppPileCluster.classList.toggle('d-none', !isTableVisible);
+  spaceLine.classList.toggle('d-none', !isTableVisible);
+
+  latestSideByUserId = data.side_by_user_id;
+  if (isTableVisible) {
+    renderSpaceLine();
+  }
 
   if (data.status === 'awaiting_ready') {
     document.getElementById('ready-game-number').textContent = data.game_number;

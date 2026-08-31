@@ -49,6 +49,8 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
                 # A reconnect (e.g. page refresh) otherwise leaves this connection's
                 # hand empty until the next action/ping happens to trigger send_hands().
                 await self.send_hands(room, state)
+                locations = await self.get_starting_locations(room, state)
+                await self.send_json({"type": "space_line", "locations": locations})
             if state.chat_log:
                 # Otherwise a reload wipes the visible chat log — it only ever lived in
                 # the DOM, never persisted anywhere until now.
@@ -158,6 +160,7 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
             await self.save_and_broadcast(room, state)
             if state.cards_dealt:
                 await self.send_hands(room, state)
+                await self.broadcast_space_line(room, state)
             return True
 
     async def send_hands(self, room, state):
@@ -171,6 +174,15 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
 
     async def your_hand(self, event):
         await self.send_json({"type": "your_hand", "cards": event["cards"]})
+
+    async def broadcast_space_line(self, room, state):
+        """Starting locations are public (unlike hand contents) — both players see the
+        same thing, so this is a group broadcast rather than per-channel."""
+        locations = await self.get_starting_locations(room, state)
+        await self.channel_layer.group_send(self.group_name, {"type": "room.space_line", "locations": locations})
+
+    async def room_space_line(self, event):
+        await self.send_json({"type": "space_line", "locations": event["locations"]})
 
     async def kick_idle_player(self, room, state, idle_role, reason, reassign_room):
         """Closes the idle player's socket. reassign_room additionally frees their room
@@ -368,6 +380,32 @@ class RoomConsumer(AsyncJsonWebsocketConsumer):
         # Group by type (Character, Site, Interrupt, etc.), alphabetically within each group.
         cards.sort(key=lambda c: (c["type_group"], c["name"]))
         return cards
+
+    @sync_to_async
+    def get_starting_locations(self, room, state):
+        card_ids = list(state.starting_locations.values())
+        cards_by_id = {
+            c["id"]: c for c in Card.objects.filter(id__in=card_ids).values(
+                "id", "name", "text__image_url", "text__stats",
+            )
+        }
+        locations = {}
+        for role, card_id in state.starting_locations.items():
+            card = cards_by_id.get(card_id)
+            if card is None:
+                continue
+            user_id = room.user_id_for_role(role)
+            locations[user_id] = {
+                "id": card["id"],
+                "name": card["name"],
+                "image_url": card["text__image_url"] or "",
+                # Site art is scanned landscape already (unlike System art, which is
+                # portrait) — the board renders it at that native aspect ratio, no
+                # rotation, same reasoning as is_site in get_hand_cards but the
+                # opposite correction (that one un-rotates Sites to fit the hand).
+                "is_site": (card["text__stats"] or {}).get("subType") == "Site",
+            }
+        return locations
 
     @sync_to_async
     def promote_player_two(self, room):
