@@ -129,6 +129,7 @@ main {
   background-position: center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
   border: 2px solid transparent;
+  cursor: pointer;
 }
 
 /* Site art is scanned landscape already (unlike System art, which is portrait) — shown
@@ -140,18 +141,6 @@ main {
 
 #space-line .rail-slot.side-D .loc-card { border-color: #c1443a; }
 #space-line .rail-slot.side-L .loc-card { border-color: #c9a227; }
-
-#space-line .rail-nameplate {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text-muted, rgba(255, 255, 255, 0.65));
-  text-align: center;
-  max-width: 90px;
-}
-
-#space-line .rail-slot.side-D .rail-nameplate { color: #d97364; }
-#space-line .rail-slot.side-L .rail-nameplate { color: #ddbb52; }
 
 /* Match status is neutral/shared info, not the opponent's — it gets its own sidebar on
    the right instead of being stacked directly under the opponent's hand, where it read

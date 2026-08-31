@@ -53,10 +53,8 @@ const supportsCardZoom = !('ontouchstart' in window);
 const spaceLine = document.getElementById('space-line');
 const spaceLineOpponentSlot = document.getElementById('space-line-opponent');
 const spaceLineOpponentCard = document.getElementById('space-line-opponent-card');
-const spaceLineOpponentName = document.getElementById('space-line-opponent-name');
 const spaceLineMineSlot = document.getElementById('space-line-mine');
 const spaceLineMineCard = document.getElementById('space-line-mine-card');
-const spaceLineMineName = document.getElementById('space-line-mine-name');
 
 let currentStatus = null;
 let myHand = [];
@@ -149,11 +147,11 @@ function setPileBackClass(stacks, side) {
 
 function renderSpaceLine() {
   const opponentUserId = Object.keys(latestSideByUserId).find(uid => Number(uid) !== userId);
-  fillSpaceLineSlot(spaceLineOpponentSlot, spaceLineOpponentCard, spaceLineOpponentName, opponentUserId);
-  fillSpaceLineSlot(spaceLineMineSlot, spaceLineMineCard, spaceLineMineName, String(userId));
+  fillSpaceLineSlot(spaceLineOpponentSlot, spaceLineOpponentCard, opponentUserId);
+  fillSpaceLineSlot(spaceLineMineSlot, spaceLineMineCard, String(userId));
 }
 
-function fillSpaceLineSlot(slotEl, cardEl, nameEl, forUserId) {
+function fillSpaceLineSlot(slotEl, cardEl, forUserId) {
   const location = forUserId ? spaceLineLocations[forUserId] : null;
   const side = forUserId ? latestSideByUserId[forUserId] : null;
 
@@ -161,7 +159,7 @@ function fillSpaceLineSlot(slotEl, cardEl, nameEl, forUserId) {
   if (!location) {
     cardEl.style.backgroundImage = '';
     cardEl.classList.remove('loc-card-site');
-    nameEl.textContent = '';
+    delete cardEl.dataset.imageUrl;
     return;
   }
 
@@ -183,7 +181,10 @@ function fillSpaceLineSlot(slotEl, cardEl, nameEl, forUserId) {
   const needsFlip = side && mySide && side !== mySide;
   cardEl.style.transform = needsFlip ? 'rotate(180deg)' : '';
 
-  nameEl.textContent = location.name;
+  // Name reads via the same hover-zoom preview the hand uses, instead of a permanent
+  // label under the card — the zoom always shows the raw, unrotated scan (same as
+  // hand-card zoom), so it's legible regardless of the 180° flip above.
+  cardEl.dataset.imageUrl = location.image_url;
 }
 
 function renderMyHand() {
@@ -432,6 +433,25 @@ if (supportsCardZoom) {
 
   handOverlay.addEventListener('mouseout', (e) => {
     const cardEl = e.target.closest('.hand-card');
+    if (!cardEl) return;
+    clearTimeout(cardZoomTimer);
+    cardZoomPreview.classList.remove('visible');
+  });
+
+  // Same zoom-on-hover treatment for the space line — locations don't carry a visible
+  // name label, so this is how their name/text becomes readable.
+  spaceLine.addEventListener('mouseover', (e) => {
+    const cardEl = e.target.closest('.loc-card');
+    if (!cardEl || !cardEl.dataset.imageUrl) return;
+    clearTimeout(cardZoomTimer);
+    cardZoomTimer = setTimeout(() => {
+      cardZoomPreview.src = cardEl.dataset.imageUrl;
+      cardZoomPreview.classList.add('visible');
+    }, 200);
+  });
+
+  spaceLine.addEventListener('mouseout', (e) => {
+    const cardEl = e.target.closest('.loc-card');
     if (!cardEl) return;
     clearTimeout(cardZoomTimer);
     cardZoomPreview.classList.remove('visible');
