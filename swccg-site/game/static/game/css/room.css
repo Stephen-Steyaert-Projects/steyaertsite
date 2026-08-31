@@ -1,0 +1,608 @@
+/* Floating HUD overlays for the live match table. Each overlay is positioned over the
+   normal page flow and only shown once a game is in_progress/game_over (toggled via
+   the d-none class from room.js). Extra bottom padding keeps the fixed hand/turn-controls
+   overlays from permanently hiding the bottom of the ready/waiting panels underneath. */
+main {
+  padding-bottom: 6rem;
+}
+
+.game-overlay {
+  position: fixed;
+  z-index: 1030; /* above normal content, below Bootstrap modals (1055) */
+  background: rgba(20, 20, 22, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(4px);
+  padding: 0.75rem 1rem;
+}
+
+/* A permanent "Connected" banner ate a full-width row for no reason once the
+   connection is healthy — this is a toast instead: pops up top-center, then room.js
+   fades/removes it a couple seconds after a successful connect. Errors (disconnected,
+   kicked) stay put since those actually need attention. */
+.connection-toast {
+  position: fixed;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1045;
+  transition: opacity 0.4s ease;
+  max-width: 90vw;
+}
+
+.connection-toast.toast-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Each player's hand sits next to their own Force/Reserve/Used/Lost piles, like a
+   physical table — opponent's row up top, yours at the bottom. Both are single fixed,
+   centered wrappers so their children can lay out in a plain flex row instead of each
+   being independently fixed-positioned (which is what made the old layout fragile).
+   Every child still toggles visibility individually via its own d-none class. */
+#top-center-stack,
+#bottom-center-stack {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1030;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#top-center-stack {
+  /* Breathing room below the navbar instead of hugging it directly. */
+  top: 5rem;
+}
+
+#bottom-center-stack {
+  bottom: 2rem;
+}
+
+.hand-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Opponent's row sits at the top of the screen — their piles' top edge lines up with
+   their hand's top edge. Mine sits at the bottom — my piles' bottom edge lines up with
+   my hand's bottom edge, same as the very first version of this layout. */
+#top-center-stack .hand-row {
+  align-items: flex-start;
+}
+
+#bottom-center-stack .hand-row {
+  align-items: flex-end;
+}
+
+/* The space line — starting locations, and eventually the full deployed location chain
+   — sits in the dead middle of the table between the two hand rows. Confirmed direction:
+   a single shared rail (not a "whose side" split — a location is table-shared once
+   deployed), colored borders just mark who deployed each card. */
+#space-line {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1020; /* below hand/piles/turn-controls, above normal content */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(90vw, 640px);
+}
+
+#space-line .rail-line {
+  position: absolute;
+  left: 3rem;
+  right: 3rem;
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(193, 68, 58, 0.35), #2a2a32 20%, #2a2a32 80%, rgba(201, 162, 39, 0.35));
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+#space-line .rail-slots {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  width: 100%;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+#space-line .rail-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#space-line .loc-card {
+  width: 78px;
+  height: 109px;
+  border-radius: 0.35rem;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+/* Site art is scanned landscape already (unlike System art, which is portrait) — shown
+   at its native aspect ratio instead of rotated, so it reads as a Site on sight. */
+#space-line .loc-card.loc-card-site {
+  width: 109px;
+  height: 78px;
+}
+
+#space-line .rail-slot.side-D .loc-card { border-color: #c1443a; }
+#space-line .rail-slot.side-L .loc-card { border-color: #c9a227; }
+
+/* Match status is neutral/shared info, not the opponent's — it gets its own sidebar on
+   the right instead of being stacked directly under the opponent's hand, where it read
+   as if it belonged to them. */
+#status-overlay {
+  top: 5rem;
+  right: 0.75rem;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+#opponent-hand-overlay,
+#hand-overlay {
+  position: static;
+  display: flex;
+  align-items: flex-end;
+  max-width: 70vw;
+  overflow: visible;
+  /* Cards live loose on the table, not in a panel — no background/border/padding
+     from .game-overlay. */
+  background: none;
+  border: none;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+#opponent-hand-overlay {
+  gap: 0.35rem;
+}
+
+#hand-overlay {
+  /* Cards overlap instead of sitting gapped — see .hand-card's negative margin — and
+     get extra top padding so the fan's rotation/hover-lift doesn't clip against the
+     container edge. */
+  padding-top: 1.2rem;
+}
+
+#force-overlay {
+  position: static;
+  padding: 0.5rem 0.75rem;
+}
+
+#turn-controls-overlay {
+  bottom: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.force-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.force-action-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.65));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.force-action-input {
+  width: 3rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.3rem;
+  color: #e8e8ea;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.2rem 0.3rem;
+}
+
+.force-action-input:focus {
+  outline: none;
+  border-color: rgba(91, 141, 239, 0.7);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.force-action-btn {
+  background: #3b6fd8;
+  border: none;
+  border-radius: 0.3rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.force-action-btn:hover {
+  background: #4a7ce8;
+}
+
+/* Life Force piles, drawn as card-back stacks with the count on top instead of a text
+   summary — matching the rulebook diagram: Used sits above Reserve, Force is on one
+   side of Reserve, Lost Pile on the other (and face-up, since lost cards are public). */
+.pile-cluster {
+  position: relative;
+}
+
+/* Used is taken out of normal flow so the cluster's flow-height is just the row —
+   that's what lets .hand-row align-items:flex-start line the Force/Reserve/Lost row's
+   top edge up with the hand's top edge, with Used floating above (or below) it. */
+.pile-cluster-top {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+}
+
+.pile-cluster-top-above {
+  bottom: 100%;
+  margin-bottom: 0.3rem;
+}
+
+.pile-cluster-top-below {
+  top: 100%;
+  margin-top: 0.3rem;
+}
+
+.pile-cluster-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* Force sits nearest the hand (shortest path for Draw), Lost Pile farthest from it —
+   markup order is always Force/Reserve/Lost, so the row whose hand sits on the right
+   (mine) needs to render right-to-left instead. */
+.pile-cluster-row-reverse {
+  flex-direction: row-reverse;
+}
+
+/* "Stacked Depth" treatment: three offset, shadowed layers per pile so it reads as an
+   actual stack of cards, with the count as a small corner badge instead of dominating
+   the whole face. See the design comparison this was picked from — Option A. */
+.pile-stack {
+  position: relative;
+  width: 42px;
+  height: 58px;
+  flex: 0 0 auto;
+  margin-bottom: 1.1rem; /* room for the absolutely-positioned .pile-label below */
+}
+
+/* Solid per-layer shades instead of opacity — opacity lets a dark layer blend straight
+   into the page's own dark background, which is exactly what erased the stacked-depth
+   effect for dark-side piles. Distinct backgrounds plus a brighter border keep every
+   layer's silhouette visible regardless of what's behind it. */
+.pile-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.75);
+}
+
+.pile-layer:nth-child(1) {
+  transform: translate(5px, 5px);
+  background: #101014;
+}
+
+.pile-layer:nth-child(2) {
+  transform: translate(2.5px, 2.5px);
+  background: #17171b;
+}
+
+.pile-layer:nth-child(3) {
+  transform: translate(0, 0);
+  background: #212127;
+}
+
+.pile-stack.card-back-light .pile-layer {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.pile-stack.card-back-light .pile-layer:nth-child(1) {
+  background: #cfcabd;
+}
+
+.pile-stack.card-back-light .pile-layer:nth-child(2) {
+  background: #e2ddd0;
+}
+
+.pile-stack.card-back-light .pile-layer:nth-child(3) {
+  background: #f4f2ec;
+}
+
+.pile-stack.pile-lost .pile-layer {
+  border-color: rgba(255, 140, 140, 0.5);
+}
+
+.pile-stack.pile-lost .pile-layer:nth-child(1) {
+  background: #2a1515;
+}
+
+.pile-stack.pile-lost .pile-layer:nth-child(2) {
+  background: #331b1b;
+}
+
+.pile-stack.pile-lost .pile-layer:nth-child(3) {
+  background: #3f2222;
+}
+
+.pile-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e8e8ea;
+  border: 1.5px solid rgba(0, 0, 0, 0.55);
+  color: #16151a;
+  font-weight: 700;
+  font-size: 0.68rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.pile-stack.pile-lost .pile-count {
+  background: #ffb3b3;
+}
+
+.pile-label {
+  position: absolute;
+  bottom: -1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+}
+
+/* Collapsible chat widget — a small corner toggle by default, expanding into the log
+   + input above it. Always available (not gated on isTableVisible like the other
+   overlays), since chat is useful before/after a game too. */
+#chat-widget {
+  bottom: 0.75rem;
+  left: 0.75rem;
+  width: 280px;
+  padding: 0.6rem;
+}
+
+#chat-widget.chat-collapsed {
+  width: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+}
+
+#chat-log {
+  height: 180px;
+}
+
+#chat-toggle-btn {
+  position: relative;
+}
+
+#chat-unread-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #dc3545;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+/* Fanned like a real hand of cards — overlapping, tilted outward from center. Each
+   card's own rotation/lift comes from the --rot/--lift custom properties room.js sets
+   inline per card (computed by position so it scales to any hand size); :hover here
+   overrides them via normal cascade specificity, no !important needed. */
+.hand-card {
+  --card-w: 90px;
+  --card-h: 126px;
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: #2a2a2e;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transform: rotate(var(--rot, 0deg)) translateY(var(--lift, 0px));
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Site location cards are scanned rotated 90° from everything else — this inner
+   wrapper corrects just the artwork, so the card's own rectangular slot (and the fan
+   rotation above) stays untouched. Sized swapped-and-rotated so the image still fills
+   the card without clipping or distorting. */
+.hand-card-art {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--card-w);
+  height: var(--card-h);
+  background-size: cover;
+  background-position: center;
+  transform: translate(-50%, -50%);
+}
+
+.hand-card-art-rotated {
+  width: var(--card-h);
+  height: var(--card-w);
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+#hand-overlay .hand-card:not(:first-child) {
+  margin-left: -22px;
+}
+
+.hand-card:hover {
+  transform: translateY(-14px) rotate(0deg) scale(1.04);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6);
+  z-index: 5;
+  position: relative;
+}
+
+/* Hand cards stay compact so a full hand fits — hovering one (desktop only; see the
+   card-zoom-hover-supported check in room.js) shows a large, readable preview instead
+   of trying to make every card in the row legible at once. Same approach as GEMP.
+   Wrapped in a div (rather than being a bare <img>) so it can catch its own hover —
+   moving the mouse from the small source card onto the enlarged preview to click it
+   (e.g. to rotate a location, see below) must not count as "left the card" and hide it. */
+#card-zoom-preview-wrap {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1060; /* above modals too, since it's a transient hover preview */
+  /* Fixed box, not just a max-size cap — different card scans have different native
+     resolutions, so capping alone rendered each one at its own intrinsic size and made
+     hovered cards look different sizes. object-fit scales every image into this same
+     box instead, so they're all consistent regardless of source resolution. */
+  width: min(60vw, 420px);
+  height: min(80vh, 588px);
+  display: none;
+}
+
+#card-zoom-preview-wrap.visible {
+  display: block;
+}
+
+#card-zoom-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease;
+}
+
+/* Only locations click-to-rotate (they're printed with a readable band at each end,
+   see fillSpaceLineSlot in room.js) — the cursor only invites a click when that's
+   actually possible. */
+#card-zoom-preview.rotatable {
+  cursor: pointer;
+}
+
+#card-zoom-preview.rotated {
+  transform: rotate(180deg);
+}
+
+.hand-card-label {
+  width: 100%;
+  font-size: 0.6rem;
+  line-height: 1.1;
+  text-align: center;
+  padding: 0.15rem;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.card-back {
+  width: 56px;
+  height: 78px;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  flex: 0 0 auto;
+}
+
+/* Placeholders until real card-back art is added — plain per-side fill. */
+.card-back-light {
+  background-color: #ffffff;
+}
+
+.card-back-dark {
+  background-color: #000000;
+}
+
+@media (max-width: 767px) {
+  .hand-row {
+    gap: 0.4rem;
+  }
+  #opponent-hand-overlay,
+  #hand-overlay {
+    max-width: 52vw;
+  }
+  .pile-stack {
+    width: 30px;
+    height: 42px;
+    margin-bottom: 0.85rem;
+  }
+  .pile-count {
+    font-size: 0.7rem;
+  }
+  .pile-label {
+    font-size: 0.45rem;
+    bottom: -0.85rem;
+  }
+  #force-overlay {
+    padding: 0.35rem 0.5rem;
+  }
+  #force-overlay .d-flex {
+    gap: 0.25rem !important;
+  }
+  #force-overlay input {
+    max-width: 40px !important;
+    padding: 0.1rem 0.25rem !important;
+  }
+  #force-overlay .btn {
+    padding: 0.1rem 0.4rem !important;
+  }
+  #turn-controls-overlay {
+    max-width: 44vw;
+    padding: 0.4rem 0.5rem;
+    gap: 0.35rem;
+  }
+  #turn-controls-overlay .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .hand-card {
+    width: 48px;
+    height: 68px;
+  }
+  .card-back-light,
+  .card-back-dark {
+    width: 36px;
+    height: 50px;
+  }
+  #chat-widget {
+    width: 220px;
+  }
+  #chat-log {
+    height: 140px;
+  }
+}

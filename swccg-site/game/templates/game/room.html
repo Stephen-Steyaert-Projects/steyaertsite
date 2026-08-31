@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Room {{ room.code }}{% endblock %}
+{% block og_title %}Room {{ room.code }} | SWCCG Database{% endblock %}
+{% block og_description %}Live SWCCG match.{% endblock %}
+{% block twitter_title %}Room {{ room.code }} | SWCCG Database{% endblock %}
+{% block twitter_description %}Live SWCCG match.{% endblock %}
+
+{% block navbar %}
+<nav class="navbar bg-body-tertiary sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'index' %}">SWCCGDB</a>
+    <span class="navbar-text ms-3">
+      Room {{ room.code }} <small class="text-secondary">— share this code with your opponent</small>
+    </span>
+    <span class="navbar-text ms-auto me-3" id="players-connected">—</span>
+    <button id="close-room-btn" class="btn btn-outline-danger btn-sm d-none me-2" data-bs-toggle="modal" data-bs-target="#close-room-modal">Close Room</button>
+    <button id="leave-room-btn" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#leave-room-modal">Leave Room</button>
+  </div>
+</nav>
+{% endblock %}
+
+{% block metaLinks %}
+<link rel="stylesheet" href="{% static 'game/css/room.css' %}">
+{% endblock %}
+
+{% block content %}
+{{ room.code|json_script:"room-code" }}
+{{ request.user.id|json_script:"user-id" }}
+{{ light_decks|json_script:"light-decks" }}
+{{ dark_decks|json_script:"dark-decks" }}
+
+{% include 'game/components/header_bar.html' %}
+{% include 'game/components/waiting_panel.html' %}
+{% include 'game/components/ready_panel.html' %}
+
+<div id="top-center-stack">
+  <div class="hand-row">
+    {% include 'game/components/opponent_hand_overlay.html' %}
+    {% include 'game/components/pile_cluster.html' with prefix="opp" flip_used=True %}
+  </div>
+</div>
+
+{% include 'game/components/space_line.html' %}
+
+<div id="bottom-center-stack">
+  <div class="hand-row">
+    {% include 'game/components/pile_cluster.html' with prefix="my" reverse_row=True %}
+    {% include 'game/components/hand_overlay.html' %}
+  </div>
+</div>
+
+{% include 'game/components/status_overlay.html' %}
+{% include 'game/components/turn_controls_overlay.html' %}
+{% include 'game/components/chat_panel.html' %}
+
+{% include 'game/components/modals.html' %}
+
+<div id="card-zoom-preview-wrap">
+  <img id="card-zoom-preview" alt="" title="Click to rotate and read the other side">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'game/js/room.js' %}" data-lobby-url="{% url 'game_index' %}"></script>
+{% endblock %}

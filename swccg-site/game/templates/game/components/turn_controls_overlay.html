@@ -1,0 +1,16 @@
+<div id="turn-controls-overlay" class="game-overlay d-none">
+  <div class="force-action-row" id="activate-force-row">
+    <span class="force-action-label">Activate</span>
+    <input type="number" id="activate-force-input" class="force-action-input" min="0" value="0">
+    <button id="activate-force-btn" class="force-action-btn">Go</button>
+  </div>
+  <div class="force-action-row" id="draw-cards-row">
+    <span class="force-action-label">Draw</span>
+    <input type="number" id="draw-cards-input" class="force-action-input" min="0" value="0">
+    <button id="draw-cards-btn" class="force-action-btn">Go</button>
+  </div>
+  <button id="pass-phase-btn" class="btn btn-primary btn-sm" disabled>Next Phase</button>
+  <button id="resign-btn" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#resign-modal">Resign</button>
+  <button id="rematch-btn" class="btn btn-outline-light btn-sm d-none" disabled>Play Again (swap sides)</button>
+  <div id="phase-error" class="text-danger small"></div>
+</div>

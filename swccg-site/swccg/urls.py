@@ -7,6 +7,7 @@ from django.views.static import serve
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("register.urls")),
+    path("play/", include("game.urls")),
     path("", include("swccgdb.urls")),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

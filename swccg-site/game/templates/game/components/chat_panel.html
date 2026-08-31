@@ -1,0 +1,13 @@
+<div id="chat-widget" class="game-overlay chat-collapsed">
+  <button id="chat-toggle-btn" class="btn btn-outline-light btn-sm">
+    Chat
+    <span id="chat-unread-dot" class="d-none"></span>
+  </button>
+  <div id="chat-panel-body" class="d-none mt-2">
+    <div id="chat-log" class="border border-secondary rounded p-2 mb-2" style="overflow-y: auto;"></div>
+    <form id="chat-form" class="d-flex gap-2">
+      <input type="text" id="chat-input" class="form-control form-control-sm" placeholder="Say something..." maxlength="500">
+      <button type="submit" class="btn btn-outline-light btn-sm">Send</button>
+    </form>
+  </div>
+</div>

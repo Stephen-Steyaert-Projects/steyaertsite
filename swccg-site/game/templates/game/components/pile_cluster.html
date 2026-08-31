@@ -1,0 +1,17 @@
+<div class="pile-cluster" id="{{ prefix }}-pile-cluster">
+  {% if not flip_used %}
+  <div class="pile-cluster-top pile-cluster-top-above">
+    {% include 'game/components/pile_stack.html' with id=prefix|add:"-used" label="Used" %}
+  </div>
+  {% endif %}
+  <div class="pile-cluster-row{% if reverse_row %} pile-cluster-row-reverse{% endif %}">
+    {% include 'game/components/pile_stack.html' with id=prefix|add:"-force" label="Force" %}
+    {% include 'game/components/pile_stack.html' with id=prefix|add:"-reserve" label="Reserve" %}
+    {% include 'game/components/pile_stack.html' with id=prefix|add:"-lost" label="Lost" lost=True %}
+  </div>
+  {% if flip_used %}
+  <div class="pile-cluster-top pile-cluster-top-below">
+    {% include 'game/components/pile_stack.html' with id=prefix|add:"-used" label="Used" %}
+  </div>
+  {% endif %}
+</div>

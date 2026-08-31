@@ -79,6 +79,27 @@ class Card(models.Model):
         return f"{self.name} ({self.card_set})"
 
 
+class CardText(models.Model):
+    """Game text and stats needed to execute a card in the rules engine, sourced from swccg-card-json."""
+
+    card = models.OneToOneField(Card, on_delete=models.CASCADE, related_name='text')
+    game_text = models.TextField(blank=True)
+    lore = models.TextField(blank=True)
+    image_url = models.URLField(blank=True)
+    deploy_cost = models.CharField(max_length=10, blank=True)
+    destiny = models.CharField(max_length=10, blank=True)
+    power = models.CharField(max_length=10, blank=True)
+    ability = models.CharField(max_length=10, blank=True)
+    armor = models.CharField(max_length=10, blank=True)
+    forfeit = models.CharField(max_length=10, blank=True)
+    # Everything else that's specific to only some card types (maneuver, hyperspeed,
+    # landspeed, parsec, politics, ferocity, characteristics, icons, uniqueness, etc.)
+    stats = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return f"{self.card} text"
+
+
 class OwnedCard(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_cards')
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='owned_by')
