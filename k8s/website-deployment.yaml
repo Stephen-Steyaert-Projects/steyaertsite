@@ -13,6 +13,10 @@ spec:
       labels:
         app: website
     spec:
+      # Only gradpace (and the future LLM service) should ever land on
+      # steyaert-worker - everything else stays pinned to the manager.
+      nodeSelector:
+        kubernetes.io/hostname: steyaert-mgr
       imagePullSecrets:
         - name: ghcr-pull
       containers:

@@ -16,6 +16,13 @@ spec:
       labels:
         app: swccg
     spec:
+      # Only gradpace (and the future LLM service) should ever land on
+      # steyaert-worker - everything else stays pinned to the manager. Also
+      # sidesteps a GHCR CDN edge issue specific to the worker node where
+      # this image's :latest tag kept resolving to a stale, already-deleted
+      # manifest digest (same tag resolved fine on the manager every time).
+      nodeSelector:
+        kubernetes.io/hostname: steyaert-mgr
       imagePullSecrets:
         - name: ghcr-pull
       containers:
