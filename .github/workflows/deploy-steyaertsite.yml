@@ -22,7 +22,19 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Deploy to production
+      # Only the k8s manifests + Makefile are needed on the runner; the app
+      # itself runs from the image pulled by `kubectl set image`.
+      - name: Checkout k8s manifests and Makefile
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          sparse-checkout: |
+            k8s
+            Makefile
+          sparse-checkout-cone-mode: false
+
+      - name: Deploy to k3s
         run: |
-          cd /srv/steyaertsite
-          make deploy-moviesdb
+          TAG=sha-$(echo "${{ github.event.workflow_run.head_sha || github.sha }}" | cut -c1-7)
+          kubectl apply -f k8s/
+          make k8s-deploy-website TAG=$TAG

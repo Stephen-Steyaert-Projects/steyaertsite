@@ -1,0 +1,24 @@
+# TLS secret "steyaert-wildcard" must exist in this namespace too - see
+# website-ingress.yaml.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: swccg
+  namespace: steyaertsite
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - swccg.steyaert.xyz
+      secretName: steyaert-wildcard
+  rules:
+    - host: swccg.steyaert.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: swccg
+                port:
+                  number: 8000

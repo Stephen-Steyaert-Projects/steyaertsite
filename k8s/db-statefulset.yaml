@@ -1,0 +1,63 @@
+# Pinned to steyaert-mgr. Uses its own data directory (postgres_data_k3s),
+# NOT the live compose stack's /srv/postgres_data - pointing two Postgres
+# processes at the same data dir caused a lock-file fight and crash loop
+# when this happened with gradpace's db (see GP-69 incident notes). Gets a
+# real data copy only once the compose stack is actually being retired.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: steyaertsite
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: steyaert-mgr
+      containers:
+        - name: db
+          image: postgres:17
+          envFrom:
+            - configMapRef:
+                name: db-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-password
+                  key: password
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: postgres-data
+          hostPath:
+            path: /srv/postgres_data_k3s
+            type: DirectoryOrCreate

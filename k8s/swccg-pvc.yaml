@@ -1,0 +1,13 @@
+# local-path-provisioner (k3s's default StorageClass) - see urlshortener's
+# k8s/pvc.yaml for the same reasoning on single-replica RWO volumes.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: swccg-media
+  namespace: steyaertsite
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

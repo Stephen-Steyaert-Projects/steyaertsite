@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swccg
+  namespace: steyaertsite
+spec:
+  replicas: 1
+  strategy:
+    # RWO PVC (swccg-media) can only be mounted by one pod at a time.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: swccg
+  template:
+    metadata:
+      labels:
+        app: swccg
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: swccg
+          # CI overrides this with `kubectl set image deployment/swccg
+          # swccg=ghcr.io/.../swccg-site:sha-<short>` - :latest here is only
+          # the manual-apply default.
+          image: ghcr.io/stephen-steyaert-projects/steyaertsite/swccg-site:latest
+          envFrom:
+            - configMapRef:
+                name: swccg-config
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: swccg-secret-key
+                  key: secret-key
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-password
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: swccg-media
+              mountPath: /app/media
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+              httpHeaders:
+                - name: Host
+                  value: swccg.steyaert.xyz
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+              httpHeaders:
+                - name: Host
+                  value: swccg.steyaert.xyz
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: swccg-media
+          persistentVolumeClaim:
+            claimName: swccg-media

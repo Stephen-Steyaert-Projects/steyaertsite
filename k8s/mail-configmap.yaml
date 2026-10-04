@@ -1,0 +1,13 @@
+# MYNETWORKS covers the k3s pod CIDR (10.42.0.0/16) and service CIDR
+# (10.43.0.0/16) instead of the old bridge-network subnet (172.55.1.0/24) -
+# these are the defaults k3s sets up uncustomized on this cluster (see the
+# gradpace k8s/mail-configmap.yaml for the same reasoning).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mail-config
+  namespace: steyaertsite
+data:
+  ALLOWED_SENDER_DOMAINS: "swccg.steyaert.xyz"
+  DKIM_AUTOGENERATE: "true"
+  MYNETWORKS: "10.42.0.0/16 10.43.0.0/16 127.0.0.0/8"

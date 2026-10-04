@@ -1,0 +1,25 @@
+# TLS secret "steyaert-wildcard" must exist in this namespace too (k8s
+# secrets are namespace-scoped) - same cert copied into each namespace that
+# needs it (see gradpace's k8s/ setup for how it was created).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: website
+  namespace: steyaertsite
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - movies.steyaert.xyz
+      secretName: steyaert-wildcard
+  rules:
+    - host: movies.steyaert.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: website
+                port:
+                  number: 8000

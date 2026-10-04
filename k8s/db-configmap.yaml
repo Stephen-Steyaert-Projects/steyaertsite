@@ -1,0 +1,11 @@
+# POSTGRES_USER below is a placeholder - set it to whatever DATABASE_USERNAME
+# actually is in the real .env.prod on the server (couldn't read that file
+# directly, only its .env.prod.example template).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: steyaertsite
+data:
+  POSTGRES_DB: "steyaertsite_db"
+  POSTGRES_USER: "REPLACE_ME"
