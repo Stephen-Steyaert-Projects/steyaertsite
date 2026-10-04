@@ -4,7 +4,9 @@ metadata:
   name: website
   namespace: steyaertsite
 spec:
-  replicas: 1
+  # movies.steyaert.xyz is retired - scaled to 0 rather than removed, in
+  # case it needs to come back.
+  replicas: 0
   selector:
     matchLabels:
       app: website
