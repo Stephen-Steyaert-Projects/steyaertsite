@@ -8,9 +8,9 @@ data:
   ALLOWED_HOSTS: "swccg.steyaert.xyz"
   CSRF_TRUSTED_ORIGINS: "https://swccg.steyaert.xyz"
   DATABASE_ENGINE: "postgresql"
-  DATABASE_NAME: "steyaertsite_db"
-  # Must match db-configmap.yaml's POSTGRES_USER.
-  DATABASE_USERNAME: "REPLACE_ME"
+  # Separate database on the same Postgres instance - see db-configmap.yaml.
+  DATABASE_NAME: "swccg_db"
+  DATABASE_USERNAME: "steyaertsite_user"
   DATABASE_HOST: "db"
   DATABASE_PORT: "5432"
   EMAIL_HOST: "mail"

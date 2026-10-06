@@ -9,7 +9,6 @@ data:
   CSRF_TRUSTED_ORIGINS: "https://movies.steyaert.xyz"
   DATABASE_ENGINE: "postgresql"
   DATABASE_NAME: "steyaertsite_db"
-  # Must match db-configmap.yaml's POSTGRES_USER.
-  DATABASE_USERNAME: "REPLACE_ME"
+  DATABASE_USERNAME: "steyaertsite_user"
   DATABASE_HOST: "db"
   DATABASE_PORT: "5432"

@@ -1,6 +1,8 @@
-# POSTGRES_USER below is a placeholder - set it to whatever DATABASE_USERNAME
-# actually is in the real .env.prod on the server (couldn't read that file
-# directly, only its .env.prod.example template).
+# swccg uses a second database ("swccg_db") on this same Postgres instance,
+# under the same user - the postgres image only auto-creates POSTGRES_DB on
+# first init, so swccg_db needs a one-time manual
+# `CREATE DATABASE swccg_db OWNER steyaertsite_user;` after the db pod first
+# comes up (see the migration notes).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,4 +10,4 @@ metadata:
   namespace: steyaertsite
 data:
   POSTGRES_DB: "steyaertsite_db"
-  POSTGRES_USER: "REPLACE_ME"
+  POSTGRES_USER: "steyaertsite_user"
